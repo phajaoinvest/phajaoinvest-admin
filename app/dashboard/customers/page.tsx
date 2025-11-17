@@ -1,12 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { useDashboardStore, Customer } from '@/lib/dashboard-store'
-import { Search, Eye, Ban, Trash2, MoreVertical, Mail, Phone, User, Calendar, CheckCircle2, XCircle, ChevronLeft, ChevronRight, AlertTriangle, Download } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,20 +8,26 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useRouter } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { useDashboardStore, Customer } from '@/lib/dashboard-store'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Search, Eye, Ban, Trash2, MoreVertical, Mail, Phone, User, Calendar, CheckCircle2, XCircle, ChevronLeft, ChevronRight, AlertTriangle, Download, UserRoundX, UserRoundCheck, Users, BadgeCheck, ShieldX } from 'lucide-react'
 
 export default function CustomersPage() {
   const router = useRouter()
   const customers = useDashboardStore((state) => state.customers)
   const deleteCustomer = useDashboardStore((state) => state.deleteCustomer)
   const updateCustomer = useDashboardStore((state) => state.updateCustomer)
-  
+
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
   const [customerToBan, setCustomerToBan] = useState<Customer | null>(null)
-  
+
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -36,13 +36,13 @@ export default function CustomersPage() {
       c.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.username?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesStatus = filterStatus === 'all' || c.status === filterStatus
-    
+
     const createdDate = new Date(c.created_at)
     const matchesStartDate = !startDate || createdDate >= new Date(startDate)
     const matchesEndDate = !endDate || createdDate <= new Date(endDate)
-    
+
     return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate
   })
 
@@ -77,7 +77,7 @@ export default function CustomersPage() {
       c.isVerify ? 'Yes' : 'No',
       new Date(c.created_at).toLocaleDateString()
     ])
-    
+
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -90,24 +90,24 @@ export default function CustomersPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-5">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-md cursor-pointer">
+          <CardContent className="py-0 px-5">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Total Customers
                 </p>
                 <p className="text-2xl font-bold text-foreground mt-1">{customers.length}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <User className="w-5 h-5 text-primary" />
+                <Users className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-5">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-md cursor-pointer">
+          <CardContent className="py-0 px-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -118,14 +118,14 @@ export default function CustomersPage() {
                 </p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <User className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-5">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-md cursor-pointer">
+          <CardContent className="py-0 px-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -136,14 +136,14 @@ export default function CustomersPage() {
                 </p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                <UserRoundCheck className="w-5 h-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-5">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-sm cursor-pointer">
+          <CardContent className="py-0 px-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -153,8 +153,8 @@ export default function CustomersPage() {
                   {customers.filter((c) => c.status === 'inactive').length}
                 </p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-gray-600" />
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <UserRoundX className="w-5 h-5 text-red-600" />
               </div>
             </div>
           </CardContent>
@@ -164,59 +164,61 @@ export default function CustomersPage() {
       <Card className="border-0 shadow-sm overflow-hidden">
         <CardHeader className="border-b border-border/50 bg-secondary/20">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-medium">Customer List</CardTitle>
-                <CardDescription className="text-sm">
-                  Showing {startIndex + 1}-{Math.min(endIndex, filteredCustomers.length)} of{' '}
-                  {filteredCustomers.length} customers
-                </CardDescription>
-              </div>
-              <Button
-                onClick={exportToCSV}
-                variant="outline"
-                className="text-sm"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </Button>
+            <div>
+              <CardTitle className="text-md font-medium">Customer Lists</CardTitle>
+              <CardDescription className="text-xs">
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredCustomers.length)} of{' '}
+                {filteredCustomers.length} customers
+              </CardDescription>
             </div>
-            
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+            <div className="flex items-center justify-between">
+              <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 h-9 text-sm"
+                  />
+                </div>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="h-9 px-2.5 py-1.5 rounded-md border border-border text-sm bg-background"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </select>
                 <Input
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-9 text-sm"
+                  type="date"
+                  placeholder="Start Date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="h-9 text-sm"
+                />
+                <Input
+                  type="date"
+                  placeholder="End Date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="h-9 text-sm"
                 />
               </div>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="h-9 px-2.5 py-1.5 rounded-md border border-border text-sm bg-background"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-              </select>
-              <Input
-                type="date"
-                placeholder="Start Date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-9 text-sm"
-              />
-              <Input
-                type="date"
-                placeholder="End Date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="h-9 text-sm"
-              />
+              <div className='w-1/2 flex items-end justify-end'>
+                <Button
+                  onClick={exportToCSV}
+                  variant="outline"
+                  className="text-sm"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export CSV
+                </Button>
+              </div>
             </div>
+
           </div>
         </CardHeader>
 
@@ -226,7 +228,7 @@ export default function CustomersPage() {
               <thead className="bg-secondary/30">
                 <tr className="border-b border-border/50">
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Username
+                    No
                   </th>
                   <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                     Name
@@ -252,13 +254,13 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody>
-                {currentCustomers.map((customer) => (
+                {currentCustomers.map((customer, index) => (
                   <tr
                     key={customer.id}
                     className="border-b border-border/30 hover:bg-secondary/20 transition-colors"
                   >
                     <td className="py-3 px-4">
-                      <span className="font-medium text-foreground">{customer.username}</span>
+                      <span className="font-medium text-foreground">{index + 1}</span>
                     </td>
                     <td className="py-3 px-4">
                       <span className="font-medium text-foreground">
@@ -284,22 +286,21 @@ export default function CustomersPage() {
                     <td className="py-3 px-4">
                       <Badge
                         variant="outline"
-                        className={`text-xs font-medium ${
-                          customer.status === 'active'
-                            ? 'border-green-300 bg-green-50 text-green-700'
-                            : customer.status === 'suspended'
-                              ? 'border-orange-300 bg-orange-50 text-orange-700'
-                              : 'border-gray-300 bg-gray-50 text-gray-700'
-                        }`}
+                        className={`text-xs font-medium ${customer.status === 'active'
+                          ? 'border-green-300 bg-green-50 text-green-700'
+                          : customer.status === 'suspended'
+                            ? 'border-orange-300 bg-orange-50 text-orange-700'
+                            : 'border-gray-300 bg-gray-50 text-gray-700'
+                          }`}
                       >
                         {customer.status}
                       </Badge>
                     </td>
                     <td className="py-3 px-4">
                       {customer.isVerify ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <BadgeCheck className="w-5 h-5 text-green-600" />
                       ) : (
-                        <XCircle className="w-5 h-5 text-gray-400" />
+                        <ShieldX className="w-5 h-5 text-gray-400" />
                       )}
                     </td>
                     <td className="py-3 px-4">

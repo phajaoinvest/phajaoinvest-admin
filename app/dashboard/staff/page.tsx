@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useDashboardStore } from '@/lib/dashboard-store'
-import { Plus, Search, MoreVertical, Eye, Edit2, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Plus, Search, MoreVertical, Eye, Edit2, Trash2, ChevronLeft, ChevronRight, X, User, UserCheck, KeyRound } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
@@ -253,49 +253,48 @@ export default function StaffPage() {
     <div className="space-y-6">
       <Tabs defaultValue="staff" className="w-full">
         <TabsList className="bg-secondary/30">
-          <TabsTrigger value="staff" className="text-sm">Staff Management</TabsTrigger>
-          <TabsTrigger value="roles" className="text-sm">Roles & Permissions</TabsTrigger>
+          <TabsTrigger value="staff" className="text-sm border">Staff Management</TabsTrigger>
+          <TabsTrigger value="roles" className="text-sm border">Roles & Permissions</TabsTrigger>
         </TabsList>
 
         {/* Staff Tab */}
         <TabsContent value="staff" className="space-y-6 mt-6">
-          {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50/50 to-transparent">
-              <CardContent className="p-4">
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-blue-50/50 to-transparent rounded-sm">
+              <CardContent className="py-0 px-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-light text-muted-foreground uppercase tracking-wider">Total Staff</p>
-                    <p className="text-2xl font-light mt-1">{staff.length}</p>
+                  <div className='space-y-2'>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Staff</p>
+                    <p className="text-lg font-bold">{staff.length}</p>
                   </div>
                   <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                    <span className="text-lg">👥</span>
+                    <User size={18} className='text-blue-500' />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50/50 to-transparent">
-              <CardContent className="p-4">
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-green-50/50 to-transparent rounded-sm">
+              <CardContent className="py-0 px-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-light text-muted-foreground uppercase tracking-wider">Active Staff</p>
-                    <p className="text-2xl font-light mt-1">{staff.filter((s) => s.status === 'active').length}</p>
+                  <div className='space-y-2'>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Active Staff</p>
+                    <p className="text-lg font-bold">{staff.filter((s) => s.status === 'active').length}</p>
                   </div>
                   <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                    <span className="text-lg">✓</span>
+                    <UserCheck size={18} className='text-green-500' />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-transparent">
-              <CardContent className="p-4">
+            <Card className="border-0 shadow-sm bg-gradient-to-br from-primary/5 to-transparent rounded-sm">
+              <CardContent className="py-0 px-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-light text-muted-foreground uppercase tracking-wider">Total Roles</p>
-                    <p className="text-2xl font-light mt-1">{roles.length}</p>
+                  <div className='space-y-2'>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Total Roles</p>
+                    <p className="text-lg font-bold">{roles.length}</p>
                   </div>
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <span className="text-lg">🔑</span>
+                    <KeyRound size={18} className='text-yellow-500' />
                   </div>
                 </div>
               </CardContent>
@@ -307,32 +306,34 @@ export default function StaffPage() {
             <CardHeader className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg font-light">Staff Members</CardTitle>
-                  <CardDescription className="text-sm">
+                  <CardTitle className="text-md font-normal">Staff Members</CardTitle>
+                  <CardDescription className="text-xs">
                     Showing {paginatedStaff.length} of {filteredStaff.length} staff members
                   </CardDescription>
                 </div>
-                <Button onClick={handleAddStaff} className="bg-primary hover:bg-primary/90 text-sm h-9">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Staff
-                </Button>
+                <div className="flex items-start justify-start gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search staff by name, username, or number..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 text-sm h-9"
+                    />
+                  </div>
+                  <Button onClick={handleAddStaff} className="bg-primary hover:bg-primary/90 text-sm h-9 text-white">
+                    <Plus className="w-4 h-4" />
+                    Add Staff
+                  </Button>
+                </div>
               </div>
-              
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search staff by name, username, or number..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 text-sm h-9"
-                />
-              </div>
+
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border">
+                    <tr className="border-b border-border rounded-md bg-gray-100">
                       <th className="text-left py-3 px-4 font-medium text-muted-foreground">Staff ID</th>
                       <th className="text-left py-3 px-4 font-medium text-muted-foreground">Name</th>
                       <th className="text-left py-3 px-4 font-medium text-muted-foreground">Username</th>
@@ -359,8 +360,8 @@ export default function StaffPage() {
                               member.status === 'active'
                                 ? 'bg-green-100 text-green-700 hover:bg-green-100'
                                 : member.status === 'suspended'
-                                ? 'bg-red-100 text-red-700 hover:bg-red-100'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-100'
+                                  ? 'bg-red-100 text-red-700 hover:bg-red-100'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-100'
                             }
                           >
                             {member.status}
@@ -441,39 +442,40 @@ export default function StaffPage() {
           </Card>
         </TabsContent>
 
-        {/* Roles Tab */}
         <TabsContent value="roles" className="space-y-6 mt-6">
-          {/* Roles Table */}
           <Card className="border-0 shadow-sm overflow-hidden">
             <CardHeader className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg font-light">Roles & Permissions</CardTitle>
-                  <CardDescription className="text-sm">
+                  <CardTitle className="text-md font-bold">Roles & Permissions</CardTitle>
+                  <CardDescription className="text-xs">
                     Showing {paginatedRoles.length} of {filteredRoles.length} roles
                   </CardDescription>
                 </div>
-                <Button onClick={handleAddRole} className="bg-primary hover:bg-primary/90 text-sm h-9">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Role
-                </Button>
+                <div className="flex items-start justify-start gap-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search roles..."
+                      value={roleSearchTerm}
+                      onChange={(e) => setRoleSearchTerm(e.target.value)}
+                      className="pl-10 text-sm h-9"
+                    />
+                  </div>
+                  <Button onClick={handleAddRole} className="bg-primary hover:bg-primary/90 text-sm h-9 text-white">
+                    <Plus className="w-4 h-4" />
+                    Add Role
+                  </Button>
+                </div>
               </div>
-              
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search roles..."
-                  value={roleSearchTerm}
-                  onChange={(e) => setRoleSearchTerm(e.target.value)}
-                  className="pl-10 text-sm h-9"
-                />
-              </div>
+
+
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-border">
+                    <tr className="border-b border-border bg-gray-100">
                       <th className="text-left py-3 px-4 font-medium text-muted-foreground">Role Name</th>
                       <th className="text-left py-3 px-4 font-medium text-muted-foreground">Description</th>
                       <th className="text-left py-3 px-4 font-medium text-muted-foreground">Permissions</th>
@@ -729,8 +731,8 @@ export default function StaffPage() {
                       selectedStaff.status === 'active'
                         ? 'bg-green-100 text-green-700'
                         : selectedStaff.status === 'suspended'
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-gray-100 text-gray-700'
+                          ? 'bg-red-100 text-red-700'
+                          : 'bg-gray-100 text-gray-700'
                     }
                   >
                     {selectedStaff.status}
@@ -808,7 +810,7 @@ export default function StaffPage() {
                   onChange={(e) => setRoleFormData({ ...roleFormData, description: e.target.value })}
                 />
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium mb-3 block">Permissions</label>
                 <div className="space-y-4">
@@ -817,8 +819,8 @@ export default function StaffPage() {
                       <h4 className="text-sm font-semibold mb-3 text-foreground">{group.module}</h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {group.permissions.map((perm) => (
-                          <label 
-                            key={perm} 
+                          <label
+                            key={perm}
                             className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-secondary/20 transition-colors"
                           >
                             <Checkbox
