@@ -2,10 +2,13 @@
 
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Sidebar } from '@/components/sidebar'
-import { useAuthStore } from '@/lib/auth-store'
+
 import { useUIStore } from '@/lib/ui-store'
 import { Settings, Menu } from 'lucide-react'
+import { useAuthStore } from '@/lib/auth-store'
+
+// components
+import { Sidebar } from '@/components/sidebar'
 import { Button } from '@/components/ui/button'
 import { NotificationDropdown } from '@/components/notification-dropdown'
 
@@ -68,7 +71,7 @@ export default function DashboardLayout({
     if (pageMetadata[pathname]) {
       return pageMetadata[pathname]
     }
-    
+
     // Handle dynamic routes
     if (pathname.startsWith('/dashboard/stock-accounts/')) {
       return {
@@ -82,7 +85,7 @@ export default function DashboardLayout({
         description: 'View customer investment history and transactions',
       }
     }
-    
+
     // Default fallback
     return {
       title: 'Dashboard',
@@ -106,9 +109,8 @@ export default function DashboardLayout({
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <main
-        className={`flex-1 transition-all duration-300 ${
-          sidebarCollapsed ? 'ml-20' : 'ml-64'
-        }`}
+        className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'
+          }`}
       >
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-sm border-b border-border/50 px-4 md:px-8 lg:px-8 py-4">
           <div className="flex items-center justify-between">
@@ -122,15 +124,15 @@ export default function DashboardLayout({
                 <Menu className="w-4 h-4" />
               </Button>
               <div>
-                <h2 className="text-2xl font-light text-foreground">{currentPage.title}</h2>
-                <p className="text-sm text-muted-foreground mt-1">{currentPage.description}</p>
+                <h2 className="text-md font-bold text-foreground">{currentPage.title}</h2>
+                <p className="text-sm text-muted-foreground">{currentPage.description}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <NotificationDropdown />
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 className="text-sm"
                 onClick={() => router.push('/dashboard/settings')}
               >

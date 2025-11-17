@@ -24,7 +24,7 @@ type ChartFilter = 'week' | 'month' | 'year'
 
 export default function DashboardPage() {
   const { customers, investments, stockPicks, payments, subscriptions } = useDashboardStore()
-  
+
   const [investmentFilter, setInvestmentFilter] = useState<ChartFilter>('year')
   const [stockPickFilter, setStockPickFilter] = useState<ChartFilter>('year')
   const [subscriptionFilter, setSubscriptionFilter] = useState<ChartFilter>('year')
@@ -157,28 +157,28 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
-          icon={<Users className="w-5 h-5" />}
+          icon={<Users className="w-4 h-4" />}
           label="Active Customers"
           value={activeCustomers}
           change="+12% this month"
           changeType="positive"
         />
         <StatCard
-          icon={<TrendingUp className="w-5 h-5" />}
+          icon={<TrendingUp className="w-4 h-4" />}
           label="Total Investments"
           value={`$${(totalInvestment / 1000).toFixed(1)}K`}
           change="+23% this month"
           changeType="positive"
         />
         <StatCard
-          icon={<Zap className="w-5 h-5" />}
+          icon={<Zap className="w-4 h-4" />}
           label="Stock Picks"
           value={stockPicks.length}
           change="2 new this week"
           changeType="positive"
         />
         <StatCard
-          icon={<CreditCard className="w-5 h-5" />}
+          icon={<CreditCard className="w-4 h-4" />}
           label="Total Revenue"
           value={`$${totalRevenue.toLocaleString()}`}
           change="+18% this month"
@@ -187,7 +187,6 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Investment History Chart */}
         <Card className="border border-border/50 shadow-md bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold">Investment History</CardTitle>
