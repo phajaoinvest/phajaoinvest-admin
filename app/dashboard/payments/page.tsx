@@ -18,7 +18,7 @@ export default function PaymentsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'membership' | 'investment' | 'stock' | 'stock_pick'>('all')
   const [filterStatus, setFilterStatus] = useState<'all' | 'completed' | 'pending' | 'failed'>('all')
-  
+
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -71,13 +71,13 @@ export default function PaymentsPage() {
 
   const confirmProcessPayment = () => {
     if (!paymentToProcess || !confirmAction) return
-    
+
     if (confirmAction === 'approve') {
       updatePaymentStatus(paymentToProcess.id, 'completed')
     } else {
       updatePaymentStatus(paymentToProcess.id, 'failed')
     }
-    
+
     setConfirmModalOpen(false)
     setPaymentToProcess(null)
     setConfirmAction(null)
@@ -162,42 +162,42 @@ export default function PaymentsPage() {
       {/* Payment Type Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <Card className="border-0 shadow-sm bg-card">
-          <CardContent className="p-6">
-            <div className="text-center">
+          <CardContent className="py-0 px-6">
+            <div className="text-start">
               <p className="text-xs text-muted-foreground font-medium mb-2">TOTAL REVENUE</p>
-              <p className="text-2xl font-light text-foreground">${stats.total.toLocaleString()}</p>
+              <p className="text-md text-bold text-foreground">${stats.total.toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-blue-50 dark:bg-blue-950/30">
-          <CardContent className="p-6">
-            <div className="text-center">
+          <CardContent className="py-0 px-6">
+            <div className="text-start">
               <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2">MEMBERSHIP</p>
-              <p className="text-2xl font-light text-blue-900 dark:text-blue-300">${stats.membership.toLocaleString()}</p>
+              <p className="text-md text-bold text-blue-900 dark:text-blue-300">${stats.membership.toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-green-50 dark:bg-green-950/30">
-          <CardContent className="p-6">
-            <div className="text-center">
+          <CardContent className="py-0 px-6">
+            <div className="text-start">
               <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-2">INVESTMENT</p>
-              <p className="text-2xl font-light text-green-900 dark:text-green-300">${stats.investment.toLocaleString()}</p>
+              <p className="text-md text-bold text-green-900 dark:text-green-300">${stats.investment.toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-purple-50 dark:bg-purple-950/30">
-          <CardContent className="p-6">
-            <div className="text-center">
+          <CardContent className="py-0 px-6">
+            <div className="text-start">
               <p className="text-xs text-purple-600 dark:text-purple-400 font-medium mb-2">STOCK</p>
-              <p className="text-2xl font-light text-purple-900 dark:text-purple-300">${stats.stock.toLocaleString()}</p>
+              <p className="text-md text-bold text-purple-900 dark:text-purple-300">${stats.stock.toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm bg-orange-50 dark:bg-orange-950/30">
-          <CardContent className="p-6">
-            <div className="text-center">
+          <CardContent className="py-0 px-6">
+            <div className="text-start">
               <p className="text-xs text-orange-600 dark:text-orange-400 font-medium mb-2">STOCK PICK</p>
-              <p className="text-2xl font-light text-orange-900 dark:text-orange-300">${stats.stock_pick.toLocaleString()}</p>
+              <p className="text-md text-bold text-orange-900 dark:text-orange-300">${stats.stock_pick.toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>
@@ -208,8 +208,8 @@ export default function PaymentsPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg font-light">Payment Transactions</CardTitle>
-              <CardDescription className="text-sm">Total: {filteredPayments.length} transactions</CardDescription>
+              <CardTitle className="text-md font-bold">Payment Transactions</CardTitle>
+              <CardDescription className="text-xs">Total: {filteredPayments.length} transactions</CardDescription>
             </div>
             <Button variant="outline" className="text-sm h-9" onClick={exportToCSV}>
               <Download className="w-4 h-4 mr-2" />
@@ -217,9 +217,12 @@ export default function PaymentsPage() {
             </Button>
           </div>
         </CardHeader>
-        
+
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
+            <div></div>
+            <div></div>
+            <div></div>
             <div className="relative col-span-2">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
               <Input
@@ -229,7 +232,6 @@ export default function PaymentsPage() {
                 className="pl-10 text-sm h-9"
               />
             </div>
-            
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as any)}
@@ -241,7 +243,6 @@ export default function PaymentsPage() {
               <option value="stock">Stock</option>
               <option value="stock_pick">Stock Pick</option>
             </select>
-            
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -253,7 +254,7 @@ export default function PaymentsPage() {
               <option value="failed">Failed</option>
             </select>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -267,10 +268,11 @@ export default function PaymentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedPayments.map((payment) => {
+                {paginatedPayments.map((payment, index: number) => {
                   const customer = customers.find((c) => c.id === payment.customerId)
                   return (
                     <tr key={payment.id} className="border-b border-border/50 hover:bg-muted/50 transition-colors">
+                      <td className="py-3 px-4">{index + 1}</td>
                       <td className="py-3 px-4 font-medium text-muted-foreground">{payment.date}</td>
                       <td className="py-3 px-4">
                         <div>
@@ -385,9 +387,8 @@ export default function PaymentsPage() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Status:</span>
-                          <span className={`text-sm font-medium capitalize ${
-                            customer?.status === 'active' ? 'text-green-600' : 'text-red-600'
-                          }`}>
+                          <span className={`text-sm font-medium capitalize ${customer?.status === 'active' ? 'text-green-600' : 'text-red-600'
+                            }`}>
                             {customer?.status}
                           </span>
                         </div>
@@ -474,7 +475,7 @@ export default function PaymentsPage() {
                     {confirmAction === 'approve' ? 'Approve Payment' : 'Reject Payment'}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {confirmAction === 'approve' 
+                    {confirmAction === 'approve'
                       ? 'Are you sure you want to approve this payment? This action will mark the payment as completed.'
                       : 'Are you sure you want to reject this payment? This action will mark the payment as failed.'
                     }
@@ -502,7 +503,7 @@ export default function PaymentsPage() {
               </Button>
               <Button
                 onClick={confirmProcessPayment}
-                className={confirmAction === 'approve' 
+                className={confirmAction === 'approve'
                   ? 'bg-green-600 hover:bg-green-700 text-white'
                   : 'bg-red-600 hover:bg-red-700 text-white'
                 }

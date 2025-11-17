@@ -40,12 +40,12 @@ export default function InvestmentDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/investments')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
         <div>
-          <h1 className="text-2xl font-light text-foreground">Investment Account Details</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-md font-bold text-foreground">Investment Account Details</h1>
+          <p className="text-xs text-muted-foreground mt-1">
             {customer.first_name} {customer.last_name} - {investment.id}
           </p>
         </div>
@@ -54,54 +54,54 @@ export default function InvestmentDetailPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-card border border-border/40">
-          <CardContent className="p-6">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground font-light">Total Balance</p>
-                <p className="text-2xl font-light text-foreground mt-1">
+                <p className="text-md font-bold text-foreground mt-1">
                   ${investment.current_value.toLocaleString()}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-primary" />
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border border-border/40">
-          <CardContent className="p-6">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground font-light">Invested Amount</p>
-                <p className="text-2xl font-light text-foreground mt-1">
+                <p className="text-md font-bold text-foreground mt-1">
                   ${investment.total_invested_amount.toLocaleString()}
                 </p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <BarChart3 className="w-6 h-6 text-blue-500" />
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-blue-500" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border border-border/40">
-          <CardContent className="p-6">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground font-light">Total Return</p>
-                <p className={`text-2xl font-light mt-1 ${investment.total_return >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                <p className={`text-md font-bold mt-1 ${investment.total_return >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   ${Math.abs(investment.total_return).toLocaleString()}
                 </p>
                 <p className={`text-xs mt-1 ${investment.total_return >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                   {returnPercentage.toFixed(2)}%
                 </p>
               </div>
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${investment.total_return >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${investment.total_return >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
                 {investment.total_return >= 0 ? (
-                  <TrendingUp className="w-6 h-6 text-green-500" />
+                  <TrendingUp className="w-4 h-4 text-green-500" />
                 ) : (
-                  <TrendingDown className="w-6 h-6 text-red-500" />
+                  <TrendingDown className="w-4 h-4 text-red-500" />
                 )}
               </div>
             </div>
@@ -109,87 +109,24 @@ export default function InvestmentDetailPage() {
         </Card>
 
         <Card className="bg-card border border-border/40">
-          <CardContent className="p-6">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground font-light">Active Investments</p>
-                <p className="text-2xl font-light text-foreground mt-1">{investment.investment_count}</p>
+                <p className="text-md font-bold text-foreground mt-1">{investment.investment_count}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-purple-500" />
+              <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <Calendar className="w-4 h-4 text-purple-500" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Customer Information */}
-      <Card className="bg-card border border-border/40">
-        <CardHeader>
-          <CardTitle className="text-lg font-light">Customer Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Full Name</p>
-                <p className="text-base font-medium mt-1">
-                  {customer.first_name} {customer.last_name}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                <Mail className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Email</p>
-                <p className="text-base font-medium mt-1">{customer.email}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                <Phone className="w-5 h-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Phone</p>
-                <p className="text-base font-medium mt-1">{customer.phone_number || 'N/A'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                <Calendar className="w-5 h-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Account Status</p>
-                <Badge
-                  variant="outline"
-                  className={
-                    investment.status === 'active'
-                      ? 'bg-green-500/10 text-green-500 border-green-500/20 mt-1'
-                      : investment.status === 'pending'
-                        ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 mt-1'
-                        : 'bg-gray-500/10 text-gray-500 border-gray-500/20 mt-1'
-                  }
-                >
-                  {investment.status}
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Investment History */}
       <Card className="bg-card border border-border/40">
         <CardHeader>
-          <CardTitle className="text-lg font-light">Investment History</CardTitle>
+          <CardTitle className="text-md font-semibold">Investment History</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

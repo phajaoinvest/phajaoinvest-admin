@@ -19,7 +19,7 @@ export default function InvestmentsPage() {
   const router = useRouter()
   const investments = useDashboardStore((state) => state.investments)
   const updateInvestmentStatus = useDashboardStore((state) => state.updateInvestmentStatus)
-  
+
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'most_invest' | 'least_invest' | 'none'>('none')
@@ -30,17 +30,17 @@ export default function InvestmentsPage() {
 
   const filteredInvestments = investments
     .filter((inv) => {
-      const matchesSearch = 
+      const matchesSearch =
         inv.customer_first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.customer_last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         `${inv.customer_first_name} ${inv.customer_last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
-      
+
       const matchesStatus = statusFilter === 'all' || inv.status === statusFilter
-      
-      const matchesDateRange = 
+
+      const matchesDateRange =
         (!startDate || inv.created_date >= startDate) &&
         (!endDate || inv.created_date <= endDate)
-      
+
       return matchesSearch && matchesStatus && matchesDateRange
     })
     .sort((a, b) => {
@@ -73,7 +73,7 @@ export default function InvestmentsPage() {
       inv.investment_count,
       inv.created_date,
     ])
-    
+
     const csv = [headers, ...rows].map((row) => row.join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
@@ -95,57 +95,57 @@ export default function InvestmentsPage() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border border-border/40 shadow-sm">
-          <CardContent className="p-6">
+        <Card className="border border-yellow-300 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className='space-y-2'>
                 <p className="text-sm text-muted-foreground font-light">Total Invested</p>
-                <p className="text-2xl font-light text-foreground mt-1">${totalInvested.toLocaleString()}</p>
+                <p className="text-md font-bold text-foreground">${totalInvested.toLocaleString()}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-primary" />
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="w-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border/40 shadow-sm">
-          <CardContent className="p-6">
+        <Card className="border border-green-300 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className='space-y-2'>
                 <p className="text-sm text-muted-foreground font-light">Total Returns</p>
-                <p className="text-2xl font-light text-green-500 mt-1">${totalReturn.toLocaleString()}</p>
+                <p className="text-md font-bold text-green-500">${totalReturn.toLocaleString()}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-500" />
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <TrendingUp className="w-4 text-green-500" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border/40 shadow-sm">
-          <CardContent className="p-6">
+        <Card className="border border-blue-300 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className='space-y-2'>
                 <p className="text-sm text-muted-foreground font-light">Active Accounts</p>
-                <p className="text-2xl font-light text-foreground mt-1">{activeInvestments}</p>
+                <p className="text-md font-bold text-foreground">{activeInvestments}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-blue-500" />
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Calendar className="w-4 text-blue-500" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border border-border/40 shadow-sm">
-          <CardContent className="p-6">
+        <Card className="border border-purple-300 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className='space-y-2'>
                 <p className="text-sm text-muted-foreground font-light">Total Investments</p>
-                <p className="text-2xl font-light text-foreground mt-1">{totalInvestmentCount}</p>
+                <p className="text-md font-bold text-foreground">{totalInvestmentCount}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-500" />
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <TrendingUp className="w-4 text-purple-500" />
               </div>
             </div>
           </CardContent>
@@ -154,88 +154,89 @@ export default function InvestmentsPage() {
 
       {/* Table */}
       <Card className="bg-card border border-border/40 overflow-hidden">
-        <CardContent className="p-6">
+        <CardContent className="px-4 py-2">
           <div className="flex flex-col gap-4">
+            Filter by:
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Investment Accounts</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by customer name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 bg-background border-border h-9"
+                  />
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 h-9 rounded-md border border-border bg-background text-sm"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="closed">Closed</option>
+                </select>
+
+                <Input
+                  type="date"
+                  placeholder="Start Date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-background border-border h-9"
+                />
+
+                <Input
+                  type="date"
+                  placeholder="End Date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-background border-border h-9"
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="px-3 h-9 rounded-md border border-border bg-background text-sm"
+                  >
+                    <option value="none">Sort By</option>
+                    <option value="most_invest">Most Invested</option>
+                    <option value="least_invest">Least Invested</option>
+                  </select>
+                </div>
+              </div>
               <Button onClick={exportToCSV} variant="outline" size="sm" className="h-9">
                 <Download className="w-4 h-4 mr-2" />
                 Export CSV
               </Button>
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              <div className="relative col-span-2">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by customer name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-background border-border h-9"
-                />
-              </div>
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 h-9 rounded-md border border-border bg-background text-sm"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="completed">Completed</option>
-                <option value="closed">Closed</option>
-              </select>
-
-              <Input
-                type="date"
-                placeholder="Start Date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="bg-background border-border h-9"
-              />
-
-              <Input
-                type="date"
-                placeholder="End Date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="bg-background border-border h-9"
-              />
-            </div>
-            
-            <div className="flex gap-2">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-3 h-9 rounded-md border border-border bg-background text-sm"
-              >
-                <option value="none">Sort By</option>
-                <option value="most_invest">Most Invested</option>
-                <option value="least_invest">Least Invested</option>
-              </select>
-            </div>
           </div>
         </CardContent>
-        
+
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">No</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer Name</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Total Invested</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Total Return</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Current Value</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Investments</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Created Date</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedInvestments.map((inv) => (
+                {paginatedInvestments.map((inv, index: number) => (
                   <tr key={inv.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <td className="py-3 px-4 font-medium">
+                      {index + 1}
+                    </td>
                     <td className="py-3 px-4 font-medium">
                       {inv.customer_first_name} {inv.customer_last_name}
                     </td>
@@ -252,22 +253,6 @@ export default function InvestmentsPage() {
                     <td className="py-3 px-4">
                       <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                         {inv.investment_count} active
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant="outline"
-                        className={
-                          inv.status === 'active'
-                            ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                            : inv.status === 'pending'
-                              ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                              : inv.status === 'completed'
-                                ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                                : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
-                        }
-                      >
-                        {inv.status}
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground">{inv.created_date}</td>

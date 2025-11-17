@@ -1,12 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Breadcrumb } from '@/components/breadcrumb'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { useDashboardStore, Package } from '@/lib/dashboard-store'
-import { Plus, Edit2, Trash2, X, Eye, Search, PackageIcon, DollarSign, TrendingUp, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Eye, Search, MoreVertical, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function PackagesPage() {
   const packages = useDashboardStore((state) => state.packages)
@@ -19,10 +18,10 @@ export default function PackagesPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [viewingPackage, setViewingPackage] = useState<Package | null>(null)
   const [deletingPackage, setDeletingPackage] = useState<Package | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
-  
+
   const [formData, setFormData] = useState({
     service_type: '',
     price: '',
@@ -74,14 +73,14 @@ export default function PackagesPage() {
   }
 
   const openCreateModal = () => {
-    setFormData({ 
-      service_type: '', 
-      price: '', 
+    setFormData({
+      service_type: '',
+      price: '',
       currency: 'USD',
-      duration_months: '', 
+      duration_months: '',
       description: '',
-      features: '', 
-      active: true 
+      features: '',
+      active: true
     })
     setEditingId(null)
     setIsModalOpen(true)
@@ -105,14 +104,14 @@ export default function PackagesPage() {
   const closeModal = () => {
     setIsModalOpen(false)
     setEditingId(null)
-    setFormData({ 
-      service_type: '', 
-      price: '', 
+    setFormData({
+      service_type: '',
+      price: '',
       currency: 'USD',
-      duration_months: '', 
+      duration_months: '',
       description: '',
-      features: '', 
-      active: true 
+      features: '',
+      active: true
     })
   }
 
@@ -129,55 +128,7 @@ export default function PackagesPage() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-secondary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-light text-muted-foreground">Total Packages</p>
-                <p className="text-2xl font-light text-foreground mt-1">{packages.length}</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <PackageIcon className="w-5 h-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-secondary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-light text-muted-foreground">Active Packages</p>
-                <p className="text-2xl font-light text-foreground mt-1">
-                  {packages.filter((p) => p.active).length}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-gradient-to-br from-background to-secondary/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-light text-muted-foreground">Average Price</p>
-                <p className="text-2xl font-light text-foreground mt-1">
-                  ${packages.length > 0 ? (packages.reduce((sum, p) => sum + p.price, 0) / packages.length).toFixed(2) : '0.00'}
-                </p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-0 shadow-sm">
+      <Card className="border-0 shadow-sm rounded-sm">
         <div className="p-4 border-b border-border">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
             <div className="relative flex-1 w-full sm:max-w-md">
@@ -191,10 +142,10 @@ export default function PackagesPage() {
             </div>
             <Button
               onClick={openCreateModal}
-              className="bg-primary hover:bg-primary/90 text-sm font-light h-9 w-full sm:w-auto"
+              className="text-white bg-primary hover:bg-primary/90 text-sm font-normal h-9 w-full sm:w-auto"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Package
+              <Plus className="w-4 h-4" />
+              Create New
             </Button>
           </div>
         </div>
@@ -240,11 +191,10 @@ export default function PackagesPage() {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`text-xs font-light px-2.5 py-1 rounded-full ${
-                          pkg.active
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
+                        className={`text-xs font-light px-2.5 py-1 rounded-full ${pkg.active
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-700'
+                          }`}
                       >
                         {pkg.active ? 'active' : 'inactive'}
                       </span>
@@ -259,7 +209,7 @@ export default function PackagesPage() {
                         >
                           <MoreVertical className="w-4 h-4" />
                         </Button>
-                        
+
                         {openDropdownId === pkg.id && (
                           <div className="absolute right-0 top-10 z-50 bg-background border border-border rounded-md shadow-lg py-1 min-w-[140px]">
                             <button
@@ -500,11 +450,10 @@ export default function PackagesPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground font-light">Status:</span>
                     <span
-                      className={`text-xs px-2.5 py-1 rounded-full ${
-                        viewingPackage.active
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}
+                      className={`text-xs px-2.5 py-1 rounded-full ${viewingPackage.active
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-700'
+                        }`}
                     >
                       {viewingPackage.active ? 'active' : 'inactive'}
                     </span>

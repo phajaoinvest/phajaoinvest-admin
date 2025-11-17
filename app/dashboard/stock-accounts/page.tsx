@@ -39,14 +39,14 @@ export default function StockAccountsPage() {
   const filteredAndSortedAccounts = useMemo(() => {
     let filtered = stockAccounts.filter((acc) => {
       const customer = customers.find((c) => c.id === acc.customerId)
-      const matchesSearch = 
+      const matchesSearch =
         customer?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         customer?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         acc.accountNumber.toLowerCase().includes(searchTerm.toLowerCase())
-      
+
       const matchesDateRange = (!startDate || acc.createdDate >= startDate) &&
-                              (!endDate || acc.createdDate <= endDate)
-      
+        (!endDate || acc.createdDate <= endDate)
+
       return matchesSearch && matchesDateRange
     })
 
@@ -75,7 +75,7 @@ export default function StockAccountsPage() {
     const totalBalance = stockAccounts.reduce((sum, acc) => sum + acc.balance, 0)
     const totalInvested = stockAccounts.reduce((sum, acc) => sum + acc.investedAmount, 0)
     const totalStocks = stockAccounts.reduce((sum, acc) => sum + acc.totalStocks, 0)
-    
+
     return { activeAccounts, totalBalance, totalInvested, totalStocks }
   }, [stockAccounts])
 
@@ -121,57 +121,57 @@ export default function StockAccountsPage() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-6">
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Active Accounts</p>
-                <p className="text-2xl font-light mt-1">{stats.activeAccounts}</p>
+                <p className="text-md font-bold mt-1">{stats.activeAccounts}</p>
               </div>
               <div className="p-3 bg-primary/10 rounded-lg">
-                <Users className="w-5 h-5 text-primary" />
+                <Users className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-6">
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Balance</p>
-                <p className="text-2xl font-light mt-1">${stats.totalBalance.toLocaleString()}</p>
+                <p className="text-md font-bold mt-1">${stats.totalBalance.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-primary/10 rounded-lg">
-                <Wallet className="w-5 h-5 text-primary" />
+                <Wallet className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-6">
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Invested</p>
-                <p className="text-2xl font-light mt-1">${stats.totalInvested.toLocaleString()}</p>
+                <p className="text-md font-bold mt-1">${stats.totalInvested.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-primary/10 rounded-lg">
-                <DollarSign className="w-5 h-5 text-primary" />
+                <DollarSign className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-6">
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-6">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Total Stocks</p>
-                <p className="text-2xl font-light mt-1">{stats.totalStocks}</p>
+                <p className="text-md font-bold mt-1">{stats.totalStocks}</p>
               </div>
               <div className="p-3 bg-primary/10 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-primary" />
+                <TrendingUp className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -188,8 +188,8 @@ export default function StockAccountsPage() {
                 Export CSV
               </Button>
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
               <div className="relative col-span-2">
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -199,7 +199,7 @@ export default function StockAccountsPage() {
                   className="pl-10 h-9"
                 />
               </div>
-              
+              <div></div>
               <Input
                 type="date"
                 placeholder="Start Date"
@@ -214,9 +214,6 @@ export default function StockAccountsPage() {
                 onChange={(e) => setEndDate(e.target.value)}
                 className="h-9"
               />
-            </div>
-            
-            <div>
               <select
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
@@ -230,12 +227,13 @@ export default function StockAccountsPage() {
             </div>
           </div>
         </CardContent>
-        
+
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">No</th>
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Account Number</th>
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
                   <th className="text-left p-4 text-sm font-medium text-muted-foreground">Total Stocks</th>
@@ -248,12 +246,13 @@ export default function StockAccountsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {paginatedAccounts.map((account) => {
+                {paginatedAccounts.map((account, index: number) => {
                   const customer = customers.find((c) => c.id === account.customerId)
                   const customerName = `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim()
-                  
+
                   return (
                     <tr key={account.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-4">{index + 1}</td>
                       <td className="p-4 text-sm font-medium">{account.accountNumber}</td>
                       <td className="p-4">
                         <div>
@@ -271,8 +270,8 @@ export default function StockAccountsPage() {
                             account.status === 'active'
                               ? 'default'
                               : account.status === 'suspended'
-                              ? 'secondary'
-                              : 'destructive'
+                                ? 'secondary'
+                                : 'destructive'
                           }
                         >
                           {account.status}
@@ -363,7 +362,7 @@ export default function StockAccountsPage() {
               Are you sure you want to ban this stock account? The customer will not be able to trade.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="outline" onClick={() => setBanConfirmOpen(false)}>
               Cancel

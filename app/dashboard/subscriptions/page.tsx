@@ -1,7 +1,7 @@
 'use client'
 
+import { format } from 'date-fns'
 import { useState, useMemo } from 'react'
-import { useDashboardStore } from '@/lib/dashboard-store'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -20,14 +20,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Search, MoreVertical, Eye, CheckCircle, XCircle, Trash2, Download, Calendar, Filter, FileText } from 'lucide-react'
-import { format } from 'date-fns'
+import { useDashboardStore } from '@/lib/dashboard-store'
+import { Search, MoreVertical, Eye, CheckCircle, XCircle, Trash2, Download, Calendar, FileText } from 'lucide-react'
 
 export default function SubscriptionsPage() {
   const subscriptions = useDashboardStore((state) => state.subscriptions)
   const updateSubscriptionStatus = useDashboardStore((state) => state.updateSubscriptionStatus)
   const deleteSubscription = useDashboardStore((state) => state.deleteSubscription)
-  const packages = useDashboardStore((state) => state.packages)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -40,23 +39,23 @@ export default function SubscriptionsPage() {
   const [approveModalOpen, setApproveModalOpen] = useState(false)
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  
+
   const itemsPerPage = 10
 
   const filteredSubscriptions = useMemo(() => {
     return subscriptions.filter((sub) => {
-      const matchesSearch = 
+      const matchesSearch =
         sub.customer_first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.customer_last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.package_name?.toLowerCase().includes(searchTerm.toLowerCase())
-      
+
       const matchesStatus = statusFilter === 'all' || sub.status === statusFilter
       const matchesPackage = packageFilter === 'all' || sub.package_type === packageFilter
-      
+
       const matchesStartDate = !startDate || new Date(sub.subscription_date) >= new Date(startDate)
       const matchesEndDate = !endDate || new Date(sub.subscription_date) <= new Date(endDate)
-      
+
       return matchesSearch && matchesStatus && matchesPackage && matchesStartDate && matchesEndDate
     })
   }, [subscriptions, searchTerm, statusFilter, packageFilter, startDate, endDate])
@@ -103,7 +102,7 @@ export default function SubscriptionsPage() {
       sub.status,
       `${sub.currency} ${sub.amount.toFixed(2)}`
     ])
-    
+
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
     const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -130,7 +129,7 @@ export default function SubscriptionsPage() {
     const totalRevenue = subscriptions
       .filter(s => s.status === 'active')
       .reduce((sum, s) => sum + s.amount, 0)
-    
+
     return { total, active, pending, totalRevenue }
   }, [subscriptions])
 
@@ -140,12 +139,12 @@ export default function SubscriptionsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 bg-card border-border/40">
           <div className="flex items-center justify-between">
-            <div>
+            <div className='space-y-1'>
               <p className="text-sm text-muted-foreground">Total Subscriptions</p>
-              <p className="text-2xl font-semibold mt-1">{stats.total}</p>
+              <p className="text-lg font-semibold">{stats.total}</p>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <FileText className="w-5 h-5 text-primary" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FileText className="w-4 h-4 text-primary" />
             </div>
           </div>
         </Card>
@@ -154,10 +153,10 @@ export default function SubscriptionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Active Subscriptions</p>
-              <p className="text-2xl font-semibold mt-1">{stats.active}</p>
+              <p className="text-lg font-semibold mt-1">{stats.active}</p>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-500" />
+            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+              <CheckCircle className="w-4 h-4 text-green-500" />
             </div>
           </div>
         </Card>
@@ -166,10 +165,10 @@ export default function SubscriptionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Pending Approval</p>
-              <p className="text-2xl font-semibold mt-1">{stats.pending}</p>
+              <p className="text-lg font-semibold mt-1">{stats.pending}</p>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-yellow-500" />
+            <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-yellow-500" />
             </div>
           </div>
         </Card>
@@ -178,17 +177,17 @@ export default function SubscriptionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <p className="text-2xl font-semibold mt-1">${stats.totalRevenue.toFixed(2)}</p>
+              <p className="text-lg font-semibold mt-1">${stats.totalRevenue.toFixed(2)}</p>
             </div>
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Download className="w-5 h-5 text-primary" />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Download className="w-4 h-4 text-primary" />
             </div>
           </div>
         </Card>
       </div>
 
       {/* Table Card with Filters */}
-      <Card className="bg-card border-border/40">
+      <Card className="bg-card border rounde-sm">
         <div className="p-4 space-y-4">
           {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -232,7 +231,11 @@ export default function SubscriptionsPage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
             <Input
               type="date"
               placeholder="Start Date"
@@ -403,7 +406,7 @@ export default function SubscriptionsPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-3">Subscription Information</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">

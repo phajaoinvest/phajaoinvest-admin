@@ -19,7 +19,7 @@ export default function StockPicksPage() {
   const addStockPick = useDashboardStore((state) => state.addStockPick)
   const updateStockPick = useDashboardStore((state) => state.updateStockPick)
   const deleteStockPick = useDashboardStore((state) => state.deleteStockPick)
-  
+
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
@@ -27,7 +27,7 @@ export default function StockPicksPage() {
   const [showViewModal, setShowViewModal] = useState(false)
   const [selectedPick, setSelectedPick] = useState<StockPick | null>(null)
   const [isEditing, setIsEditing] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     stock_symbol: '',
     company: '',
@@ -55,7 +55,7 @@ export default function StockPicksPage() {
   })
 
   const itemsPerPage = 10
-  
+
   const filteredPicks = stockPicks.filter(
     (pick) =>
       pick.stock_symbol?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,63 +205,63 @@ export default function StockPicksPage() {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-4">
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Picks</p>
-                <p className="text-2xl font-semibold mt-1">{stockPicks.length}</p>
+                <p className="text-md font-bold mt-1">{stockPicks.length}</p>
               </div>
               <div className="p-2 bg-primary/10 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-primary" />
+                <TrendingUp className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
-        
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-4">
+
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Available</p>
-                <p className="text-2xl font-semibold mt-1 text-green-600">
+                <p className="text-md font-bold mt-1 text-green-600">
                   {stockPicks.filter(p => p.availability === 'available').length}
                 </p>
               </div>
               <div className="p-2 bg-green-500/10 rounded-lg">
-                <Target className="w-5 h-5 text-green-600" />
+                <Target className="w-4 h-4 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-4">
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Approved</p>
-                <p className="text-2xl font-semibold mt-1 text-blue-600">
+                <p className="text-md font-bold mt-1 text-blue-600">
                   {stockPicks.filter(p => p.status === 'approved').length}
                 </p>
               </div>
               <div className="p-2 bg-blue-500/10 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
+                <TrendingUp className="w-4 h-4 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border/40">
-          <CardContent className="p-4">
+        <Card className="bg-card border-border/40 rounded-sm">
+          <CardContent className="py-0 px-4">
             <div className="flex items-center justify-between">
-              <div>
+              <div className="space-y-2">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Avg Sale Price</p>
-                <p className="text-2xl font-semibold mt-1">
+                <p className="text-md font-bold mt-1">
                   ${(stockPicks.reduce((sum, p) => sum + p.sale_price, 0) / stockPicks.length || 0).toFixed(2)}
                 </p>
               </div>
               <div className="p-2 bg-primary/10 rounded-lg">
-                <DollarSign className="w-5 h-5 text-primary" />
+                <DollarSign className="w-4 h-4 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -273,33 +273,34 @@ export default function StockPicksPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Stock Picks Management</CardTitle>
-              <CardDescription>Manage stocks available for sale to customers</CardDescription>
+              <CardTitle className="text-md">Stock Picks Management</CardTitle>
+              <CardDescription className='text-xs'>Manage stocks available for sale to customers</CardDescription>
             </div>
-            <Button onClick={() => handleOpenModal()} className="bg-primary hover:bg-primary/90 h-9">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Stock Pick
-            </Button>
+            <div className="mb-4 flex items-start justify-start gap-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by symbol, company, or description..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-card border-border/40 h-9"
+                />
+              </div>
+              <Button onClick={() => handleOpenModal()} className="bg-primary hover:bg-primary/90 h-9 text-white">
+                <Plus className="w-4 h-4" />
+                Add Stock Pick
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        
+
         <CardContent>
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by symbol, company, or description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-card border-border/40 h-9"
-              />
-            </div>
-          </div>
-          
+
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/40">
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground">No</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Symbol</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Company</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
@@ -312,8 +313,9 @@ export default function StockPicksPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedPicks.map((pick) => (
+                {paginatedPicks.map((pick, index: number) => (
                   <tr key={pick.id} className="border-b border-border/20 hover:bg-muted/50 transition-colors">
+                    <td className="py-3 px-4">{index + 1}</td>
                     <td className="py-3 px-4 font-bold text-primary">{pick.stock_symbol}</td>
                     <td className="py-3 px-4">{pick.company || '-'}</td>
                     <td className="py-3 px-4">
