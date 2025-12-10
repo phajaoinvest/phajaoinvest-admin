@@ -19,12 +19,27 @@ export { customersApi, customerServicesApi, premiumMembershipApi, customerPaymen
 export {
   stocksApi,
   stockCategoriesApi,
-  stockPicksAdminApi,
-  stockPicksCustomerApi,
   customerStocksApi,
   stockTransactionsApi,
   technicalIndicatorsApi,
 } from './stocks'
+
+// Stock Picks (Admin)
+export {
+  stockPicksAdminApi,
+  type StockPick,
+  type CustomerStockPick,
+  type CreateStockPickDto,
+  type UpdateStockPickDto,
+  type StockPickFilterDto,
+  type AdminApprovePickDto,
+  StockPickStatus,
+  StockPickAvailability,
+  StockPickRiskLevel,
+  StockPickRecommendation,
+  CustomerServiceType,
+  CustomerPickStatus,
+} from './stock-picks'
 
 // Investments
 export { investmentsApi, investmentsAdminApi, interestRatesApi } from './investments'

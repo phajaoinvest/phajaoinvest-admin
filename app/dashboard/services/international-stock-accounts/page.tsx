@@ -83,6 +83,8 @@ export default function InternationalStockAccountsPage() {
       const response = await servicesAdminApi.getPendingInternationalStockAccounts({
         page: currentPage,
         limit: itemsPerPage,
+        kyc_status: kycStatusFilter !== 'all' ? kycStatusFilter : undefined,
+        search: searchTerm || undefined,
       })
 
       if (response.is_error) {
@@ -103,27 +105,11 @@ export default function InternationalStockAccountsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [currentPage, toast])
+  }, [currentPage, kycStatusFilter, searchTerm, toast])
 
   useEffect(() => {
     fetchApplications()
   }, [fetchApplications])
-
-  // Filter applications
-  const filteredApplications = applications.filter((app) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      app.customer_info.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.customer_info.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${app.customer_info.first_name} ${app.customer_info.last_name}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-
-    const matchesKycStatus =
-      kycStatusFilter === 'all' || app.kyc_info?.kyc_status === kycStatusFilter
-
-    return matchesSearch && matchesKycStatus
-  })
 
   // Handle approve
   const handleApprove = async (application: PendingServiceApplication) => {
@@ -281,7 +267,7 @@ export default function InternationalStockAccountsPage() {
                 Try Again
               </Button>
             </div>
-          ) : filteredApplications.length === 0 ? (
+          ) : applications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <FileText className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-lg font-semibold">No applications found</p>
@@ -303,7 +289,7 @@ export default function InternationalStockAccountsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredApplications.map((app) => (
+                {applications.map((app) => (
                   <tr key={app.service_id} className="hover:bg-muted/30">
                     <td className="p-4">
                       <div>
@@ -379,7 +365,7 @@ export default function InternationalStockAccountsPage() {
         </div>
 
         {/* Pagination */}
-        {!isLoading && filteredApplications.length > 0 && (
+        {!isLoading && applications.length > 0 && (
           <div className="flex items-center justify-between p-4 border-t">
             <div className="text-sm text-muted-foreground">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}

@@ -164,7 +164,7 @@ export const premiumMembershipApi = {
    * Admin: Get pending membership requests
    */
   async getPendingRequests(params?: PaginationParams) {
-    return apiClient.getPaginated('/customers/services/admin/premium-membership/pending', params)
+    return apiClient.getPaginated('/customers/services/admin/premium-membership', params)
   },
 }
 

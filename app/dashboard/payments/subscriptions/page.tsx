@@ -361,7 +361,7 @@ export default function PaymentsPage() {
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">No</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer ID</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
                     <th className="text-right py-3 px-4 font-medium text-muted-foreground">Amount</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                     <th className="text-center py-3 px-4 font-medium text-muted-foreground">Actions</th>
@@ -375,7 +375,14 @@ export default function PaymentsPage() {
                         {new Date(payment.created_at).toLocaleDateString()}
                       </td>
                       <td className="py-3 px-4">
-                        <p className="font-medium">{payment.customer_id}</p>
+                        <div>
+                          <p className="font-medium">
+                            {payment.customer ? `${payment.customer.first_name} ${payment.customer.last_name || ''}`.trim() : payment.customer_id}
+                          </p>
+                          {payment.customer?.email && (
+                            <p className="text-xs text-muted-foreground">{payment.customer.email}</p>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-right font-medium">${Number(payment.amount || 0).toLocaleString()}</td>
                       <td className="py-3 px-4">
@@ -479,8 +486,15 @@ export default function PaymentsPage() {
                     <span className="text-sm font-medium font-mono">{selectedPayment.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Customer ID:</span>
-                    <span className="text-sm font-medium">{selectedPayment.customer_id}</span>
+                    <span className="text-sm text-muted-foreground">Customer:</span>
+                    <div className="text-right">
+                      <div className="text-sm font-medium">
+                        {selectedPayment.customer ? `${selectedPayment.customer.first_name} ${selectedPayment.customer.last_name || ''}`.trim() : selectedPayment.customer_id}
+                      </div>
+                      {selectedPayment.customer?.email && (
+                        <div className="text-xs text-muted-foreground">{selectedPayment.customer.email}</div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Date:</span>
@@ -557,8 +571,15 @@ export default function PaymentsPage() {
                       <span className="font-medium">${Number(paymentToProcess.amount || 0).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Customer ID:</span>
-                      <span className="font-medium">{paymentToProcess.customer_id}</span>
+                      <span className="text-muted-foreground">Customer:</span>
+                      <div className="text-right">
+                        <div className="font-medium">
+                          {paymentToProcess.customer ? `${paymentToProcess.customer.first_name} ${paymentToProcess.customer.last_name || ''}`.trim() : paymentToProcess.customer_id}
+                        </div>
+                        {paymentToProcess.customer?.email && (
+                          <div className="text-xs text-muted-foreground">{paymentToProcess.customer.email}</div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Date:</span>

@@ -82,10 +82,10 @@ export interface ApproveServiceResponse {
 // ============================================================================
 
 const SERVICES_ENDPOINTS = {
-  PENDING_PREMIUM_MEMBERSHIP: '/customers/services/admin/premium-membership/pending',
-  PENDING_INTERNATIONAL_STOCK: '/customers/services/admin/international-stock-account/pending',
-  PENDING_GUARANTEED_RETURNS: '/customers/services/admin/guaranteed-returns/pending',
-  PENDING_ALL_SERVICES: '/customers/services/admin/all-services/pending',
+  PENDING_PREMIUM_MEMBERSHIP: '/customers/services/admin/premium-membership',
+  PENDING_INTERNATIONAL_STOCK: '/customers/services/admin/international-stock-account',
+  PENDING_GUARANTEED_RETURNS: '/customers/services/admin/guaranteed-returns',
+  PENDING_ALL_SERVICES: '/customers/services/admin/all-services',
   SERVICE_STATS: '/customers/services/admin/stats',
   APPROVE_SERVICE: (serviceId: string) => `/customers/services/${serviceId}/approve`,
   REJECT_SERVICE: (serviceId: string) => `/customers/services/${serviceId}/reject`,
@@ -100,6 +100,8 @@ export const servicesAdminApi = {
   async getPendingPremiumMemberships(params?: {
     page?: number
     limit?: number
+    payment_status?: string
+    search?: string
   }): Promise<PaginatedResponse<PendingServiceApplication>> {
     return apiClient.getPaginated<PendingServiceApplication>(
       SERVICES_ENDPOINTS.PENDING_PREMIUM_MEMBERSHIP,
@@ -113,6 +115,8 @@ export const servicesAdminApi = {
   async getPendingInternationalStockAccounts(params?: {
     page?: number
     limit?: number
+    kyc_status?: string
+    search?: string
   }): Promise<PaginatedResponse<PendingServiceApplication>> {
     return apiClient.getPaginated<PendingServiceApplication>(
       SERVICES_ENDPOINTS.PENDING_INTERNATIONAL_STOCK,
@@ -126,6 +130,8 @@ export const servicesAdminApi = {
   async getPendingGuaranteedReturns(params?: {
     page?: number
     limit?: number
+    payment_status?: string
+    search?: string
   }): Promise<PaginatedResponse<PendingServiceApplication>> {
     return apiClient.getPaginated<PendingServiceApplication>(
       SERVICES_ENDPOINTS.PENDING_GUARANTEED_RETURNS,

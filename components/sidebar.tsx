@@ -17,7 +17,6 @@ const navItems = [
   { href: '/dashboard/investments', label: 'Investments', icon: TrendingUp },
   { href: '/dashboard/stock-accounts', label: 'Stock Accounts', icon: Stock },
   { href: '/dashboard/stock-picks', label: 'Stock Picks', icon: Zap },
-  { href: '/dashboard/payments', label: 'Payments', icon: CreditCard },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -25,6 +24,13 @@ const serviceItems = [
   { href: '/dashboard/services/premium-membership', label: 'Premium Membership' },
   { href: '/dashboard/services/international-stock-accounts', label: 'International Stock Accounts' },
   { href: '/dashboard/services/guaranteed-returns', label: 'Guaranteed Returns' },
+]
+
+const paymentItems = [
+  { href: '/dashboard/payments/subscriptions', label: 'Subscription Payments' },
+  { href: '/dashboard/payments/stock-picks', label: 'Stock Pick Payments' },
+  { href: '/dashboard/payments/transfers', label: 'Deposits & Withdrawals' },
+  { href: '/dashboard/payments/investments', label: 'Investment Payments' },
 ]
 
 export function Sidebar() {
@@ -35,6 +41,9 @@ export function Sidebar() {
   const [servicesExpanded, setServicesExpanded] = useState(
     pathname.startsWith('/dashboard/services')
   )
+  const [paymentsExpanded, setPaymentsExpanded] = useState(
+    pathname.startsWith('/dashboard/payments')
+  )
 
   const handleLogout = async () => {
     await logout()
@@ -42,6 +51,7 @@ export function Sidebar() {
   }
 
   const isServiceActive = serviceItems.some((item) => pathname === item.href)
+  const isPaymentActive = paymentItems.some((item) => pathname === item.href)
 
   return (
     <aside
@@ -110,6 +120,51 @@ export function Sidebar() {
           {servicesExpanded && !sidebarCollapsed && (
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-2">
               {serviceItems.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`block px-3 py-2 rounded-md text-sm transition-all duration-200 ${isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
+                      }`}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Payments Dropdown */}
+        <div>
+          <button
+            onClick={() => setPaymentsExpanded(!paymentsExpanded)}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-md text-sm font-medium transition-all duration-200 ${isPaymentActive
+              ? 'bg-gradient-to-r from-sidebar-primary to-sidebar-primary/80 text-sidebar-primary-foreground shadow-md'
+              : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+              }`}
+            title={sidebarCollapsed ? 'Payments' : undefined}
+          >
+            <CreditCard className="w-4 h-4 flex-shrink-0" />
+            {!sidebarCollapsed && (
+              <>
+                <span className="flex-1 text-left">Payments</span>
+                {paymentsExpanded ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {/* Payment Sub-items */}
+          {paymentsExpanded && !sidebarCollapsed && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-2">
+              {paymentItems.map((item) => {
                 const isActive = pathname === item.href
                 return (
                   <Link

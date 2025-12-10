@@ -180,7 +180,7 @@ export const stockPicksAdminApi = {
    * Get pending approvals
    */
   async getPendingApprovals(params?: PaginationParams) {
-    return apiClient.getPaginated<StockPick>('/admin/stock-picks/pending-approvals', params)
+    return apiClient.getPaginated<StockPick>('/admin/stock-picks/customer-picks', params)
   },
 
   /**

@@ -39,7 +39,30 @@ export interface CustomerSubscription extends BaseEntity {
 }
 
 // ============================================================================
-// Pending Premium Membership (from backend)
+// Premium Membership Subscription (from customer_services table)
+// ============================================================================
+
+export interface PremiumMembershipSubscription {
+  service_id: string
+  customer_id: string
+  customer_info: {
+    username: string
+    email: string
+    first_name: string
+    last_name: string
+  }
+  service_type: ServiceType | string
+  active: boolean
+  subscription_duration: 3 | 6 | 12 | null
+  subscription_fee: number | null
+  subscription_expires_at: string | null
+  subscription_package_id: string | null
+  applied_at: string
+  latest_payment_status?: PaymentStatus | string | null
+}
+
+// ============================================================================
+// Pending Premium Membership (from payments table - legacy)
 // ============================================================================
 
 export interface PendingPremiumMembership {

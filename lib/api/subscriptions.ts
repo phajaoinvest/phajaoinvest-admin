@@ -14,6 +14,7 @@ import type {
   CreatePackageRequest,
   UpdatePackageRequest,
   PendingPremiumMembership,
+  PremiumMembershipSubscription,
 } from '@/lib/types'
 
 // ============================================================================
@@ -70,16 +71,23 @@ export const packagesApi = {
 
 export const subscriptionsApi = {
   /**
-   * Get pending premium membership applications (admin)
+   * Get all premium membership subscriptions from customer_services (admin)
    */
-  async getPending(params?: PaginationParams) {
-    return apiClient.getPaginated<PendingPremiumMembership>('/customers/services/admin/premium-membership/pending', params)
+  async getAll(params?: PaginationParams & { status?: string; search?: string }) {
+    return apiClient.getPaginated<PremiumMembershipSubscription>('/customers/services/admin/premium-membership/subscriptions', params)
+  },
+
+  /**
+   * Get pending premium membership applications (admin) - legacy payments-based
+   */
+  async getPending(params?: PaginationParams & { status?: string; search?: string }) {
+    return apiClient.getPaginated<PendingPremiumMembership>('/customers/services/admin/premium-membership', params)
   },
 
   /**
    * Get all subscriptions (admin) - if endpoint exists
    */
-  async getAll(params?: PaginationParams & SubscriptionFilters) {
+  async getAllLegacy(params?: PaginationParams & SubscriptionFilters) {
     return apiClient.getPaginated<CustomerSubscription>('/subscriptions', params)
   },
 
@@ -131,13 +139,16 @@ export const paymentsApi = {
    * Approve payment
    */
   async approve(id: string, notes?: string) {
-    return apiClient.post(`/payments/${id}/approve`, { notes })
+    return apiClient.post(`/customers/services/admin/payments/${id}/approve`, { admin_notes: notes })
   },
 
   /**
    * Reject payment
    */
   async reject(id: string, reason: string) {
-    return apiClient.post(`/payments/${id}/reject`, { reason })
+    return apiClient.post(`/customers/services/admin/payments/${id}/reject`, { 
+      rejection_reason: reason,
+      admin_notes: reason 
+    })
   },
 }

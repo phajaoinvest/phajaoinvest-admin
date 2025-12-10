@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { formatCurrency, formatNumber } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,6 +95,8 @@ export default function PremiumMembershipPage() {
       const response = await servicesAdminApi.getPendingPremiumMemberships({
         page: currentPage,
         limit: itemsPerPage,
+        payment_status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
       })
 
       if (response.is_error) {
@@ -114,26 +117,11 @@ export default function PremiumMembershipPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [currentPage, toast])
+  }, [currentPage, statusFilter, searchTerm, toast])
 
   useEffect(() => {
     fetchApplications()
   }, [fetchApplications])
-
-  const filteredApplications = applications.filter((app) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      app.customer_info.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.customer_info.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${app.customer_info.first_name} ${app.customer_info.last_name}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-
-    const matchesStatus =
-      statusFilter === 'all' || app.payment_info?.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
 
   const handleApproveService = async (application: PendingServiceApplication) => {
     setIsActionLoading(true)
@@ -362,7 +350,7 @@ export default function PremiumMembershipPage() {
                 Try Again
               </Button>
             </div>
-          ) : filteredApplications.length === 0 ? (
+          ) : applications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <FileText className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-lg font-semibold">No applications found</p>
@@ -385,8 +373,8 @@ export default function PremiumMembershipPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredApplications.map((app) => (
-                  <tr key={app.service_id} className="hover:bg-muted/30">
+                {applications.map((app) => (
+                  <tr key={app.payment_info?.payment_id} className="hover:bg-muted/30">
                     <td className="p-4">
                       <div>
                         <div className="font-medium">
@@ -400,7 +388,7 @@ export default function PremiumMembershipPage() {
                     </td>
                     <td className="p-4">
                       <div className="font-medium">
-                        ${app.payment_info?.amount.toFixed(2) || '0.00'}
+                        {formatCurrency(app.payment_info?.amount)}
                       </div>
                     </td>
                     <td className="p-4">
@@ -497,7 +485,7 @@ export default function PremiumMembershipPage() {
           )}
         </div>
 
-        {!isLoading && filteredApplications.length > 0 && (
+        {!isLoading && applications.length > 0 && (
           <div className="flex items-center justify-between p-4 border-t">
             <div className="text-sm text-muted-foreground">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
@@ -567,7 +555,7 @@ export default function PremiumMembershipPage() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Fee:</span>
-                    <div>${selectedApplication.subscription_fee?.toFixed(2) || '0.00'}</div>
+                    <div>{formatCurrency(selectedApplication.subscription_fee)}</div>
                   </div>
                 </div>
               </div>
@@ -578,7 +566,7 @@ export default function PremiumMembershipPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Amount:</span>
-                      <div>${selectedApplication.payment_info.amount.toFixed(2)}</div>
+                      <div>${Number(selectedApplication.payment_info.amount).toFixed(2)}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Status:</span>

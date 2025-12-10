@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { formatCurrency, formatNumber } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -82,6 +83,8 @@ export default function GuaranteedReturnsPage() {
       const response = await servicesAdminApi.getPendingGuaranteedReturns({
         page: currentPage,
         limit: itemsPerPage,
+        payment_status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
       })
 
       if (response.is_error) {
@@ -102,26 +105,11 @@ export default function GuaranteedReturnsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [currentPage, toast])
+  }, [currentPage, statusFilter, searchTerm, toast])
 
   useEffect(() => {
     fetchApplications()
   }, [fetchApplications])
-
-  const filteredApplications = applications.filter((app) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      app.customer_info.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.customer_info.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${app.customer_info.first_name} ${app.customer_info.last_name}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-
-    const matchesStatus =
-      statusFilter === 'all' || app.payment_info?.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
 
   const handleApprove = async (application: PendingServiceApplication) => {
     setIsActionLoading(true)
@@ -194,7 +182,7 @@ export default function GuaranteedReturnsPage() {
     }
   }
 
-  const totalInvestedAmount = applications.reduce((sum, app) => sum + (app.invested_amount || 0), 0)
+  const totalInvestedAmount = applications.reduce((sum, app) => sum + Number(app.invested_amount || 0), 0)
 
   return (
     <div className="space-y-6">
@@ -249,7 +237,7 @@ export default function GuaranteedReturnsPage() {
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">Total Invested</div>
-          <div className="text-3xl font-bold">${totalInvestedAmount.toFixed(2)}</div>
+          <div className="text-3xl font-bold">{formatCurrency(totalInvestedAmount)}</div>
         </Card>
         <Card className="p-6">
           <div className="text-sm text-muted-foreground">Payment Pending</div>
@@ -280,7 +268,7 @@ export default function GuaranteedReturnsPage() {
                 Try Again
               </Button>
             </div>
-          ) : filteredApplications.length === 0 ? (
+          ) : applications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-12 text-center">
               <FileText className="w-12 h-12 text-muted-foreground mb-4" />
               <p className="text-lg font-semibold">No applications found</p>
@@ -303,7 +291,7 @@ export default function GuaranteedReturnsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredApplications.map((app) => (
+                {applications.map((app) => (
                   <tr key={app.service_id} className="hover:bg-muted/30">
                     <td className="p-4">
                       <div>
@@ -316,12 +304,12 @@ export default function GuaranteedReturnsPage() {
                     <td className="p-4">
                       <div className="font-medium flex items-center">
                         <DollarSign className="w-4 h-4 mr-1" />
-                        {(app.invested_amount || 0).toFixed(2)}
+                        {Number(app.invested_amount || 0).toFixed(2)}
                       </div>
                     </td>
                     <td className="p-4">
                       <div className="font-medium">
-                        ${(app.balance || 0).toFixed(2)}
+                        ${Number(app.balance || 0).toFixed(2)}
                       </div>
                     </td>
                     <td className="p-4">
@@ -382,7 +370,7 @@ export default function GuaranteedReturnsPage() {
           )}
         </div>
 
-        {!isLoading && filteredApplications.length > 0 && (
+        {!isLoading && applications.length > 0 && (
           <div className="flex items-center justify-between p-4 border-t">
             <div className="text-sm text-muted-foreground">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
@@ -449,13 +437,13 @@ export default function GuaranteedReturnsPage() {
                   <div>
                     <span className="text-muted-foreground">Invested Amount:</span>
                     <div className="text-lg font-bold">
-                      ${(selectedApplication.invested_amount || 0).toFixed(2)}
+                      ${Number(selectedApplication.invested_amount || 0).toFixed(2)}
                     </div>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Current Balance:</span>
                     <div className="text-lg font-bold">
-                      ${(selectedApplication.balance || 0).toFixed(2)}
+                      ${Number(selectedApplication.balance || 0).toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -467,7 +455,7 @@ export default function GuaranteedReturnsPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">Amount:</span>
-                      <div>${selectedApplication.payment_info.amount.toFixed(2)}</div>
+                      <div>${Number(selectedApplication.payment_info.amount).toFixed(2)}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Status:</span>

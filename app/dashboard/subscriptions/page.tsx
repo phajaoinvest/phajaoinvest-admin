@@ -20,12 +20,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { subscriptionsApi } from '@/lib/api/subscriptions'
-import type { PendingPremiumMembership } from '@/lib/types'
-import { Search, MoreVertical, Eye, CheckCircle, XCircle, Download, Calendar, FileText, Loader2, RefreshCw, ExternalLink } from 'lucide-react'
+import type { PremiumMembershipSubscription } from '@/lib/types'
+import { Search, Eye, Download, Calendar, FileText, Loader2, RefreshCw, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { formatCurrency, formatNumber } from '@/lib/utils'
 
 // Map subscription duration to display text
 const getDurationLabel = (months: number | null): string => {
@@ -36,35 +35,45 @@ const getDurationLabel = (months: number | null): string => {
   return `${months} Months`
 }
 
-// Map payment status to display status
-const getDisplayStatus = (status: string): 'pending' | 'active' | 'cancelled' | 'expired' => {
-  switch (status?.toLowerCase()) {
-    case 'succeeded':
-      return 'active'
-    case 'pending':
-    case 'payment_slip_submitted':
-    case 'processing':
-      return 'pending'
-    case 'failed':
-    case 'canceled':
-      return 'cancelled'
-    case 'refunded':
-    case 'partially_refunded':
-      return 'expired'
-    default:
-      return 'pending'
+// Map service active status and expiration to display status
+const getDisplayStatus = (
+  active: boolean,
+  expiresAt: string | null,
+  paymentStatus?: string | null
+): 'pending' | 'active' | 'cancelled' | 'expired' => {
+  const now = new Date()
+  const expiration = expiresAt ? new Date(expiresAt) : null
+
+  if (active && (!expiration || expiration > now)) {
+    return 'active'
   }
+
+  if (!active && paymentStatus) {
+    const status = paymentStatus.toLowerCase()
+    if (status === 'pending' || status === 'payment_slip_submitted' || status === 'processing') {
+      return 'pending'
+    }
+    if (status === 'failed' || status === 'canceled') {
+      return 'cancelled'
+    }
+  }
+
+  if (expiration && expiration <= now) {
+    return 'expired'
+  }
+
+  return 'pending'
 }
 
 export default function SubscriptionsPage() {
   const { toast } = useToast()
-  
+
   // State for API data
-  const [subscriptions, setSubscriptions] = useState<PendingPremiumMembership[]>([])
+  const [subscriptions, setSubscriptions] = useState<PremiumMembershipSubscription[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -79,33 +88,31 @@ export default function SubscriptionsPage() {
   const [endDate, setEndDate] = useState('')
 
   // Modal state
-  const [selectedSubscription, setSelectedSubscription] = useState<PendingPremiumMembership | null>(null)
+  const [selectedSubscription, setSelectedSubscription] = useState<PremiumMembershipSubscription | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
-  const [approveModalOpen, setApproveModalOpen] = useState(false)
-  const [rejectModalOpen, setRejectModalOpen] = useState(false)
-  const [adminNotes, setAdminNotes] = useState('')
-  const [rejectionReason, setRejectionReason] = useState('')
 
   // Fetch subscriptions from API
   const fetchSubscriptions = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      console.log('Fetching subscriptions...', { page: currentPage, limit: itemsPerPage })
-      const response = await subscriptionsApi.getPending({
+      console.log('Fetching subscriptions...', { page: currentPage, limit: itemsPerPage, status: statusFilter, search: searchTerm })
+      const response = await subscriptionsApi.getAll({
         page: currentPage,
         limit: itemsPerPage,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        search: searchTerm || undefined,
       })
-      
+
       console.log('API Response:', response)
-      
+
       if (response.is_error) {
         throw new Error(response.message || 'Failed to fetch subscriptions')
       }
-      
+
       const data = response.data || []
       console.log('Subscriptions data:', data)
-      
+
       setSubscriptions(data)
       setTotalPages(response.totalPages || 1)
       setTotalItems(response.total || 0)
@@ -121,129 +128,40 @@ export default function SubscriptionsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [currentPage, toast])
+  }, [currentPage, statusFilter, searchTerm, toast])
 
   // Initial fetch
   useEffect(() => {
     fetchSubscriptions()
   }, [fetchSubscriptions])
 
-  // Filter subscriptions locally
+  // Filter subscriptions locally for client-side only filters (duration, date range)
   const filteredSubscriptions = useMemo(() => {
     return subscriptions.filter((sub) => {
-      const customerName = `${sub.customer_info.first_name} ${sub.customer_info.last_name}`.toLowerCase()
-      const matchesSearch =
-        customerName.includes(searchTerm.toLowerCase()) ||
-        sub.customer_info.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.customer_info.username?.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const displayStatus = getDisplayStatus(sub.payment_info.status)
-      const matchesStatus = statusFilter === 'all' || displayStatus === statusFilter
-
-      const matchesDuration = durationFilter === 'all' || 
+      const matchesDuration = durationFilter === 'all' ||
         (sub.subscription_duration?.toString() === durationFilter)
 
       const appliedDate = new Date(sub.applied_at)
       const matchesStartDate = !startDate || appliedDate >= new Date(startDate)
       const matchesEndDate = !endDate || appliedDate <= new Date(endDate)
 
-      return matchesSearch && matchesStatus && matchesDuration && matchesStartDate && matchesEndDate
+      return matchesDuration && matchesStartDate && matchesEndDate
     })
-  }, [subscriptions, searchTerm, statusFilter, durationFilter, startDate, endDate])
+  }, [subscriptions, durationFilter, startDate, endDate])
 
-  // Handle approve
-  const handleApprove = async () => {
-    if (!selectedSubscription) return
-    
-    setIsActionLoading(true)
-    try {
-      const response = await subscriptionsApi.approvePayment(
-        selectedSubscription.payment_info.payment_id,
-        adminNotes || undefined
-      )
-      
-      if (response.is_error) {
-        throw new Error(response.message || 'Failed to approve subscription')
-      }
-      
-      toast({
-        title: 'Success',
-        description: 'Subscription approved successfully',
-      })
-      
-      setApproveModalOpen(false)
-      setSelectedSubscription(null)
-      setAdminNotes('')
-      fetchSubscriptions()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to approve subscription'
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      })
-    } finally {
-      setIsActionLoading(false)
-    }
-  }
 
-  // Handle reject
-  const handleReject = async () => {
-    if (!selectedSubscription) return
-    
-    if (!rejectionReason.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please provide a rejection reason',
-        variant: 'destructive',
-      })
-      return
-    }
-    
-    setIsActionLoading(true)
-    try {
-      const response = await subscriptionsApi.rejectPayment(
-        selectedSubscription.payment_info.payment_id,
-        rejectionReason,
-        adminNotes || undefined
-      )
-      
-      if (response.is_error) {
-        throw new Error(response.message || 'Failed to reject subscription')
-      }
-      
-      toast({
-        title: 'Success',
-        description: 'Subscription rejected successfully',
-      })
-      
-      setRejectModalOpen(false)
-      setSelectedSubscription(null)
-      setRejectionReason('')
-      setAdminNotes('')
-      fetchSubscriptions()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to reject subscription'
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      })
-    } finally {
-      setIsActionLoading(false)
-    }
-  }
 
   // Export to CSV
   const exportToCSV = () => {
-    const headers = ['Customer Name', 'Email', 'Duration', 'Applied Date', 'Status', 'Amount']
+    const headers = ['Customer Name', 'Email', 'Duration', 'Applied Date', 'Status', 'Amount', 'Expires']
     const rows = filteredSubscriptions.map(sub => [
       `${sub.customer_info.first_name} ${sub.customer_info.last_name}`,
       sub.customer_info.email,
       getDurationLabel(sub.subscription_duration),
       format(new Date(sub.applied_at), 'MMM dd, yyyy'),
-      getDisplayStatus(sub.payment_info.status),
-      `USD ${sub.payment_info.amount?.toFixed(2) || '0.00'}`
+      getDisplayStatus(sub.active, sub.subscription_expires_at, sub.latest_payment_status),
+      `USD ${formatNumber(sub.subscription_fee || 0)}`,
+      sub.subscription_expires_at ? format(new Date(sub.subscription_expires_at), 'MMM dd, yyyy') : 'N/A'
     ])
 
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
@@ -255,8 +173,8 @@ export default function SubscriptionsPage() {
     link.click()
   }
 
-  const getStatusBadge = (status: string) => {
-    const displayStatus = getDisplayStatus(status)
+  const getStatusBadge = (active: boolean, expiresAt: string | null, paymentStatus?: string | null) => {
+    const displayStatus = getDisplayStatus(active, expiresAt, paymentStatus)
     const variants: Record<string, string> = {
       active: 'bg-green-500/10 text-green-500 border-green-500/20',
       pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
@@ -269,11 +187,11 @@ export default function SubscriptionsPage() {
   // Calculate stats
   const stats = useMemo(() => {
     const total = totalItems
-    const pending = subscriptions.filter(s => getDisplayStatus(s.payment_info.status) === 'pending').length
-    const active = subscriptions.filter(s => getDisplayStatus(s.payment_info.status) === 'active').length
+    const pending = subscriptions.filter(s => getDisplayStatus(s.active, s.subscription_expires_at, s.latest_payment_status) === 'pending').length
+    const active = subscriptions.filter(s => getDisplayStatus(s.active, s.subscription_expires_at, s.latest_payment_status) === 'active').length
     const totalRevenue = subscriptions
-      .filter(s => getDisplayStatus(s.payment_info.status) === 'active')
-      .reduce((sum, s) => sum + (s.payment_info.amount || 0), 0)
+      .filter(s => getDisplayStatus(s.active, s.subscription_expires_at, s.latest_payment_status) === 'active')
+      .reduce((sum, s) => sum + (s.subscription_fee || 0), 0)
 
     return { total, active, pending, totalRevenue }
   }, [subscriptions, totalItems])
@@ -322,7 +240,7 @@ export default function SubscriptionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <p className="text-lg font-semibold mt-1">${stats.totalRevenue.toFixed(2)}</p>
+              <p className="text-lg font-semibold mt-1">{formatCurrency(stats.totalRevenue)}</p>
             </div>
             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <Download className="w-4 h-4 text-primary" />
@@ -441,7 +359,7 @@ export default function SubscriptionsPage() {
                   </tr>
                 ) : (
                   filteredSubscriptions.map((sub) => (
-                    <tr key={sub.payment_info.payment_id} className="hover:bg-muted/20 transition-colors">
+                    <tr key={sub.service_id} className="hover:bg-muted/20 transition-colors">
                       <td className="p-4">
                         <div>
                           <p className="font-medium text-foreground">
@@ -458,57 +376,26 @@ export default function SubscriptionsPage() {
                         {format(new Date(sub.applied_at), 'MMM dd, yyyy')}
                       </td>
                       <td className="p-4">
-                        <Badge variant="outline" className={`${getStatusBadge(sub.payment_info.status)} capitalize`}>
-                          {getDisplayStatus(sub.payment_info.status)}
+                        <Badge variant="outline" className={`${getStatusBadge(sub.active, sub.subscription_expires_at, sub.latest_payment_status)} capitalize`}>
+                          {getDisplayStatus(sub.active, sub.subscription_expires_at, sub.latest_payment_status)}
                         </Badge>
                       </td>
                       <td className="p-4 text-sm font-medium text-foreground">
-                        USD ${sub.payment_info.amount?.toFixed(2) || '0.00'}
+                        USD {formatNumber(sub.subscription_fee || 0)}
                       </td>
                       <td className="p-4">
                         <div className="flex justify-center">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedSubscription(sub)
-                                  setViewModalOpen(true)
-                                }}
-                              >
-                                <Eye className="w-4 h-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              {getDisplayStatus(sub.payment_info.status) === 'pending' && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedSubscription(sub)
-                                      setApproveModalOpen(true)
-                                    }}
-                                    className="text-green-500"
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedSubscription(sub)
-                                      setRejectModalOpen(true)
-                                    }}
-                                    className="text-orange-500"
-                                  >
-                                    <XCircle className="w-4 h-4 mr-2" />
-                                    Reject
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setSelectedSubscription(sub)
+                              setViewModalOpen(true)
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -594,48 +481,44 @@ export default function SubscriptionsPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Subscription Fee</p>
-                    <p className="font-medium">USD ${selectedSubscription.subscription_fee?.toFixed(2) || '0.00'}</p>
+                    <p className="font-medium">
+                      USD {formatNumber(selectedSubscription.subscription_fee)}
+                    </p>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Payment Information</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-3">Subscription Status</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Payment ID</p>
-                    <p className="font-medium font-mono text-xs">{selectedSubscription.payment_info.payment_id}</p>
+                    <p className="text-muted-foreground">Service ID</p>
+                    <p className="font-medium font-mono text-xs">{selectedSubscription.service_id}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Amount</p>
-                    <p className="font-medium">USD ${selectedSubscription.payment_info.amount?.toFixed(2) || '0.00'}</p>
+                    <p className="text-muted-foreground">Active Status</p>
+                    <Badge variant="outline" className={`${getStatusBadge(selectedSubscription.active, selectedSubscription.subscription_expires_at, selectedSubscription.latest_payment_status)} capitalize`}>
+                      {getDisplayStatus(selectedSubscription.active, selectedSubscription.subscription_expires_at, selectedSubscription.latest_payment_status)}
+                    </Badge>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Paid At</p>
+                    <p className="text-muted-foreground">Expires At</p>
                     <p className="font-medium">
-                      {selectedSubscription.payment_info.paid_at 
-                        ? format(new Date(selectedSubscription.payment_info.paid_at), 'MMMM dd, yyyy')
-                        : 'Not paid yet'}
+                      {selectedSubscription.subscription_expires_at
+                        ? format(new Date(selectedSubscription.subscription_expires_at), 'MMMM dd, yyyy')
+                        : 'No expiration'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Status</p>
-                    <Badge variant="outline" className={`${getStatusBadge(selectedSubscription.payment_info.status)} capitalize`}>
-                      {getDisplayStatus(selectedSubscription.payment_info.status)}
-                    </Badge>
+                    <p className="text-muted-foreground">Latest Payment Status</p>
+                    <p className="font-medium capitalize">
+                      {selectedSubscription.latest_payment_status?.replace(/_/g, ' ') || 'N/A'}
+                    </p>
                   </div>
-                  {selectedSubscription.payment_info.payment_slip_url && (
+                  {selectedSubscription.subscription_package_id && (
                     <div className="col-span-2">
-                      <p className="text-muted-foreground mb-2">Payment Slip</p>
-                      <a 
-                        href={selectedSubscription.payment_info.payment_slip_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center text-primary hover:underline"
-                      >
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        View Payment Slip
-                      </a>
+                      <p className="text-muted-foreground">Package ID</p>
+                      <p className="font-medium font-mono text-xs">{selectedSubscription.subscription_package_id}</p>
                     </div>
                   )}
                 </div>
@@ -648,114 +531,7 @@ export default function SubscriptionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Approve Modal */}
-      <Dialog open={approveModalOpen} onOpenChange={setApproveModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-500">
-              <CheckCircle className="w-5 h-5" />
-              Approve Subscription
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to approve this subscription?
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSubscription && (
-            <div className="py-4 space-y-4">
-              <div className="space-y-2 text-sm">
-                <p><span className="text-muted-foreground">Customer:</span> <span className="font-medium">{selectedSubscription.customer_info.first_name} {selectedSubscription.customer_info.last_name}</span></p>
-                <p><span className="text-muted-foreground">Package:</span> <span className="font-medium">Premium Membership - {getDurationLabel(selectedSubscription.subscription_duration)}</span></p>
-                <p><span className="text-muted-foreground">Amount:</span> <span className="font-medium">USD ${selectedSubscription.payment_info.amount?.toFixed(2) || '0.00'}</span></p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="adminNotes">Admin Notes (Optional)</Label>
-                <Textarea
-                  id="adminNotes"
-                  placeholder="Add any notes about this approval..."
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setApproveModalOpen(false)
-              setAdminNotes('')
-            }}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleApprove} 
-              className="bg-green-500 hover:bg-green-600"
-              disabled={isActionLoading}
-            >
-              {isActionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Approve Subscription
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* Reject Modal */}
-      <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-orange-500">
-              <XCircle className="w-5 h-5" />
-              Reject Subscription
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to reject this subscription?
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSubscription && (
-            <div className="py-4 space-y-4">
-              <div className="space-y-2 text-sm">
-                <p><span className="text-muted-foreground">Customer:</span> <span className="font-medium">{selectedSubscription.customer_info.first_name} {selectedSubscription.customer_info.last_name}</span></p>
-                <p><span className="text-muted-foreground">Package:</span> <span className="font-medium">Premium Membership - {getDurationLabel(selectedSubscription.subscription_duration)}</span></p>
-                <p><span className="text-muted-foreground">Amount:</span> <span className="font-medium">USD ${selectedSubscription.payment_info.amount?.toFixed(2) || '0.00'}</span></p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="rejectionReason">Rejection Reason <span className="text-destructive">*</span></Label>
-                <Textarea
-                  id="rejectionReason"
-                  placeholder="Provide a reason for rejection..."
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="adminNotesReject">Admin Notes (Optional)</Label>
-                <Textarea
-                  id="adminNotesReject"
-                  placeholder="Add any additional notes..."
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setRejectModalOpen(false)
-              setRejectionReason('')
-              setAdminNotes('')
-            }}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleReject} 
-              className="bg-orange-500 hover:bg-orange-600"
-              disabled={isActionLoading || !rejectionReason.trim()}
-            >
-              {isActionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Reject Subscription
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
