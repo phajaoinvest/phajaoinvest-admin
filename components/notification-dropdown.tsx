@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useNotificationStore } from '@/lib/notification-store'
+import { useNotificationStore, type Notification } from '@/lib/notification-store'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -32,7 +32,7 @@ export function NotificationDropdown() {
     }
   }
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
     if (notification.link) {
       router.push(notification.link)

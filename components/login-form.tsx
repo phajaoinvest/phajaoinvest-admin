@@ -2,35 +2,30 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/lib/auth-store'
+import { useAuthStore } from '@/lib/stores'
 
 // components:
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Lock, Mail, BarChart3, Loader, User } from 'lucide-react'
+import { Lock, BarChart3, Loader, User } from 'lucide-react'
 
 export function LoginForm() {
   const router = useRouter()
-  const [error, setError] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [password, setPassword] = useState('password123')
-  const [email, setEmail] = useState('admin@example.com')
+  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('')
 
-  const login = useAuthStore((state) => state.login)
+  const { login, isLoading, error, clearError } = useAuthStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setIsLoading(true)
+    clearError()
 
     try {
-      await login(email, password)
+      await login({ username, password })
       router.push('/dashboard')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
-    } finally {
-      setIsLoading(false)
+    } catch {
+      // Error is already handled in the store
     }
   }
 
@@ -52,14 +47,14 @@ export function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2.5">
               <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" />
-                Email <span className='text-rose-500'>*</span>
+                <User className="w-4 h-4 text-primary" />
+                Username <span className='text-rose-500'>*</span>
               </label>
               <Input
-                type="email"
-                placeholder="admin@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="text-sm bg-white dark:bg-slate-800 border-border/60 focus:border-primary/50"
                 required
               />
@@ -99,12 +94,10 @@ export function LoginForm() {
             </div>
           </form>
 
-          <div className="mt-5 p-4 bg-gradient-to-r from-primary/8 to-primary/5 rounded-lg border border-primary/10 text-xs space-y-2">
-            <p className="font-semibold text-foreground">Demo Credentials</p>
-            <div className="space-y-1 text-muted-foreground">
-              <p>Email: <span className="font-mono text-foreground/80">admin@example.com</span></p>
-              <p>Password: <span className="font-mono text-foreground/80">password123</span></p>
-            </div>
+          <div className="mt-6 pt-6 border-t border-border/50">
+            <p className="text-xs text-muted-foreground text-center">
+              Contact administrator if you need access
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -1,11 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
 import { useUIStore } from '@/lib/ui-store'
-import { Settings, Menu } from 'lucide-react'
+import { Settings, Menu, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
+import { tokenManager } from '@/lib/api'
+import { useAuthCheck } from '@/hooks'
 
 // components
 import { Sidebar } from '@/components/sidebar'
@@ -32,6 +34,10 @@ const pageMetadata: Record<string, { title: string; description: string }> = {
   '/dashboard/subscriptions': {
     title: 'Subscription Management',
     description: 'Manage customer subscriptions and renewals',
+  },
+  '/dashboard/service': {
+    title: 'Service Management',
+    description: 'Manage customer services and subscriptions',
   },
   '/dashboard/investments': {
     title: 'Investment Account Management',
@@ -62,9 +68,19 @@ export default function DashboardLayout({
 }) {
   const router = useRouter()
   const pathname = usePathname()
+  const [isHydrated, setIsHydrated] = useState(false)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const checkAuth = useAuthStore((state) => state.checkAuth)
+  const validateToken = useAuthStore((state) => state.validateToken)
   const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed)
   const toggleSidebar = useUIStore((state) => state.toggleSidebar)
+
+  // Enable periodic token validation (every 5 minutes)
+  useAuthCheck({
+    enabled: isHydrated && isAuthenticated,
+    checkInterval: 5 * 60 * 1000,
+    redirectPath: '/login',
+  })
 
   const getPageMetadata = () => {
     // Check for exact match first
@@ -95,11 +111,49 @@ export default function DashboardLayout({
 
   const currentPage = getPageMetadata()
 
+  // Handle hydration - wait for Zustand to restore persisted state
   useEffect(() => {
-    if (!isAuthenticated) {
+    const performAuthCheck = async () => {
+      // Check if we have a token in localStorage
+      const hasToken = tokenManager.isAuthenticated()
+      
+      // If no token, redirect immediately
+      if (!hasToken) {
+        router.push('/login')
+        return
+      }
+      
+      // Sync auth state with token
+      checkAuth()
+      
+      // Validate token with backend
+      const isValid = await validateToken()
+      if (!isValid) {
+        router.push('/login')
+        return
+      }
+      
+      setIsHydrated(true)
+    }
+    
+    performAuthCheck()
+  }, [checkAuth, validateToken, router])
+
+  // After hydration, check if authenticated
+  useEffect(() => {
+    if (isHydrated && !isAuthenticated) {
       router.push('/login')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isHydrated, router])
+
+  // Show loading while checking authentication
+  if (!isHydrated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return null

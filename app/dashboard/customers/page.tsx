@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,63 +11,99 @@ import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useDashboardStore, Customer } from '@/lib/dashboard-store'
+import { useCustomersStore } from '@/lib/stores'
+import { useDebounce, usePagination } from '@/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Search, Eye, Ban, Trash2, MoreVertical, Mail, Phone, User, Calendar, CheckCircle2, XCircle, ChevronLeft, ChevronRight, AlertTriangle, Download, UserRoundX, UserRoundCheck, Users, BadgeCheck, ShieldX } from 'lucide-react'
+import { 
+  Search, Eye, Ban, Trash2, MoreVertical, Mail, Phone, 
+  Calendar, ChevronLeft, ChevronRight, AlertTriangle, 
+  Download, UserRoundX, UserRoundCheck, Users, BadgeCheck, 
+  ShieldX, Loader2, RefreshCw
+} from 'lucide-react'
+import type { Customer, CustomerStatus } from '@/lib/types'
 
 export default function CustomersPage() {
   const router = useRouter()
-  const customers = useDashboardStore((state) => state.customers)
-  const deleteCustomer = useDashboardStore((state) => state.deleteCustomer)
-  const updateCustomer = useDashboardStore((state) => state.updateCustomer)
+  
+  // Store
+  const { 
+    customers, 
+    pagination: storePagination,
+    isLoading, 
+    error,
+    fetchCustomers,
+    updateCustomer,
+    deleteCustomer,
+    clearError
+  } = useCustomersStore()
 
+  // Local state
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive' | 'suspended'>('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | CustomerStatus>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
   const [customerToBan, setCustomerToBan] = useState<Customer | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isBanning, setIsBanning] = useState(false)
 
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  // Hooks
+  const debouncedSearch = useDebounce(searchTerm, 300)
+  const { page, limit, setPage, setLimit } = usePagination({ initialLimit: 10 })
 
-  const filteredCustomers = customers.filter((c) => {
-    const matchesSearch = c.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.username?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Fetch customers on mount and when filters change
+  const loadCustomers = useCallback(async () => {
+    await fetchCustomers({
+      page,
+      limit,
+      search: debouncedSearch || undefined,
+      status: filterStatus !== 'all' ? filterStatus : undefined,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
+    })
+  }, [fetchCustomers, page, limit, debouncedSearch, filterStatus, startDate, endDate])
 
-    const matchesStatus = filterStatus === 'all' || c.status === filterStatus
+  useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
 
-    const createdDate = new Date(c.created_at)
-    const matchesStartDate = !startDate || createdDate >= new Date(startDate)
-    const matchesEndDate = !endDate || createdDate <= new Date(endDate)
+  // Calculate stats from current data
+  const totalCustomers = storePagination.total
+  const activeCount = customers.filter(c => c.status === 'active').length
+  const verifiedCount = customers.filter(c => c.isVerify).length
+  const inactiveCount = customers.filter(c => c.status === 'inactive').length
 
-    return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate
-  })
-
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentCustomers = filteredCustomers.slice(startIndex, endIndex)
-
-  const handleDeleteConfirm = () => {
-    if (customerToDelete) {
-      deleteCustomer(customerToDelete.id)
+  const handleDeleteConfirm = async () => {
+    if (!customerToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      await deleteCustomer(customerToDelete.id)
       setCustomerToDelete(null)
+    } catch {
+      // Error handled in store
+    } finally {
+      setIsDeleting(false)
     }
   }
 
-  const handleBanConfirm = () => {
-    if (customerToBan) {
-      updateCustomer(customerToBan.id, { status: 'suspended' })
+  const handleBanConfirm = async () => {
+    if (!customerToBan) return
+    
+    setIsBanning(true)
+    try {
+      await updateCustomer(customerToBan.id, { status: 'suspended' })
       setCustomerToBan(null)
+    } catch {
+      // Error handled in store
+    } finally {
+      setIsBanning(false)
     }
   }
 
   const exportToCSV = () => {
     const headers = ['Username', 'First Name', 'Last Name', 'Email', 'Phone', 'Status', 'Verified', 'Created']
-    const rows = filteredCustomers.map(c => [
+    const rows = customers.map(c => [
       c.username,
       c.first_name,
       c.last_name || '',
@@ -87,8 +123,21 @@ export default function CustomersPage() {
     a.click()
   }
 
+  const totalPages = storePagination.totalPages
+
   return (
     <div className="space-y-6">
+      {/* Error display */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-lg flex items-center justify-between">
+          <span>{error}</span>
+          <Button variant="ghost" size="sm" onClick={clearError}>
+            Dismiss
+          </Button>
+        </div>
+      )}
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-md cursor-pointer">
           <CardContent className="py-0 px-5">
@@ -97,7 +146,7 @@ export default function CustomersPage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Total Customers
                 </p>
-                <p className="text-2xl font-bold text-foreground mt-1">{customers.length}</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{totalCustomers}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Users className="w-5 h-5 text-primary" />
@@ -113,12 +162,10 @@ export default function CustomersPage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Active
                 </p>
-                <p className="text-2xl font-bold text-green-600 mt-1">
-                  {customers.filter((c) => c.status === 'active').length}
-                </p>
+                <p className="text-2xl font-bold text-green-600 mt-1">{activeCount}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <User className="w-5 h-5 text-green-600" />
+                <UserRoundCheck className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -131,12 +178,10 @@ export default function CustomersPage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Verified
                 </p>
-                <p className="text-2xl font-bold text-primary mt-1">
-                  {customers.filter((c) => c.isVerify).length}
-                </p>
+                <p className="text-2xl font-bold text-primary mt-1">{verifiedCount}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <UserRoundCheck className="w-5 h-5 text-blue-600" />
+                <BadgeCheck className="w-5 h-5 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -149,9 +194,7 @@ export default function CustomersPage() {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Inactive
                 </p>
-                <p className="text-2xl font-bold text-gray-600 mt-1">
-                  {customers.filter((c) => c.status === 'inactive').length}
-                </p>
+                <p className="text-2xl font-bold text-gray-600 mt-1">{inactiveCount}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                 <UserRoundX className="w-5 h-5 text-red-600" />
@@ -164,12 +207,22 @@ export default function CustomersPage() {
       <Card className="border-0 shadow-sm overflow-hidden">
         <CardHeader className="border-b border-border/50 bg-secondary/20">
           <div className="flex flex-col gap-4">
-            <div>
-              <CardTitle className="text-md font-medium">Customer Lists</CardTitle>
-              <CardDescription className="text-xs">
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredCustomers.length)} of{' '}
-                {filteredCustomers.length} customers
-              </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-md font-medium">Customer Lists</CardTitle>
+                <CardDescription className="text-xs">
+                  Showing {customers.length > 0 ? ((page - 1) * limit) + 1 : 0}-
+                  {Math.min(page * limit, storePagination.total)} of {storePagination.total} customers
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadCustomers}
+                disabled={isLoading}
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
             <div className="flex items-center justify-between">
               <div className="grid grid-cols-3 lg:grid-cols-4 gap-2">
@@ -184,7 +237,7 @@ export default function CustomersPage() {
                 </div>
                 <select
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  onChange={(e) => setFilterStatus(e.target.value as 'all' | CustomerStatus)}
                   className="h-9 px-2.5 py-1.5 rounded-md border border-border text-sm bg-background"
                 >
                   <option value="all">All Status</option>
@@ -212,166 +265,186 @@ export default function CustomersPage() {
                   onClick={exportToCSV}
                   variant="outline"
                   className="text-sm"
+                  disabled={customers.length === 0}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export CSV
                 </Button>
               </div>
             </div>
-
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/30">
-                <tr className="border-b border-border/50">
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    No
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Name
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Email
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Phone
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Status
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Verified
-                  </th>
-                  <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Created
-                  </th>
-                  <th className="text-center py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentCustomers.map((customer, index) => (
-                  <tr
-                    key={customer.id}
-                    className="border-b border-border/30 hover:bg-secondary/20 transition-colors"
-                  >
-                    <td className="py-3 px-4">
-                      <span className="font-medium text-foreground">{index + 1}</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="font-medium text-foreground">
-                        {customer.first_name} {customer.last_name || ''}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-foreground">{customer.email}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      {customer.phone_number ? (
-                        <div className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-foreground">{customer.phone_number}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant="outline"
-                        className={`text-xs font-medium ${customer.status === 'active'
-                          ? 'border-green-300 bg-green-50 text-green-700'
-                          : customer.status === 'suspended'
-                            ? 'border-orange-300 bg-orange-50 text-orange-700'
-                            : 'border-gray-300 bg-gray-50 text-gray-700'
-                          }`}
-                      >
-                        {customer.status}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      {customer.isVerify ? (
-                        <BadgeCheck className="w-5 h-5 text-green-600" />
-                      ) : (
-                        <ShieldX className="w-5 h-5 text-gray-400" />
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-foreground">
-                          {new Date(customer.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex justify-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 hover:bg-secondary"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem
-                              onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
-                              className="cursor-pointer"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setCustomerToBan(customer)}
-                              className="cursor-pointer text-orange-600 focus:text-orange-600"
-                            >
-                              <Ban className="w-4 h-4 mr-2" />
-                              Ban Account
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setCustomerToDelete(customer)}
-                              className="cursor-pointer text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </td>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/30">
+                  <tr className="border-b border-border/50">
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      No
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Name
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Email
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Phone
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Verified
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Created
+                    </th>
+                    <th className="text-center py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {currentCustomers.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground text-sm">
-                No customers found matching your search
-              </div>
-            )}
-          </div>
+                </thead>
+                <tbody>
+                  {customers.map((customer, index) => (
+                    <tr
+                      key={customer.id}
+                      className="border-b border-border/30 hover:bg-secondary/20 transition-colors"
+                    >
+                      <td className="py-3 px-4">
+                        <span className="font-medium text-foreground">
+                          {((page - 1) * limit) + index + 1}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-medium text-foreground">
+                          {customer.first_name} {customer.last_name || ''}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-foreground">{customer.email}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {customer.phone_number ? (
+                          <div className="flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-foreground">{customer.phone_number}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs font-medium ${customer.status === 'active'
+                            ? 'border-green-300 bg-green-50 text-green-700'
+                            : customer.status === 'suspended'
+                              ? 'border-orange-300 bg-orange-50 text-orange-700'
+                              : 'border-gray-300 bg-gray-50 text-gray-700'
+                            }`}
+                        >
+                          {customer.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        {customer.isVerify ? (
+                          <BadgeCheck className="w-5 h-5 text-green-600" />
+                        ) : (
+                          <ShieldX className="w-5 h-5 text-gray-400" />
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-foreground">
+                            {new Date(customer.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex justify-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 hover:bg-secondary"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/dashboard/customers/${customer.id}`)}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setCustomerToBan(customer)}
+                                className="cursor-pointer text-orange-600 focus:text-orange-600"
+                              >
+                                <Ban className="w-4 h-4 mr-2" />
+                                Ban Account
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setCustomerToDelete(customer)}
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {customers.length === 0 && !isLoading && (
+                <div className="text-center py-12 text-muted-foreground text-sm">
+                  No customers found matching your search
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
 
         {totalPages > 1 && (
           <div className="border-t border-border/50 px-4 py-3 flex items-center justify-between bg-secondary/10">
-            <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </div>
+              <select
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                className="h-8 px-2 rounded-md border border-border text-sm bg-background"
+              >
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1 || isLoading}
                 className="h-8"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
@@ -380,8 +453,8 @@ export default function CustomersPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages || isLoading}
                 className="h-8"
               >
                 Next
@@ -392,6 +465,7 @@ export default function CustomersPage() {
         )}
       </Card>
 
+      {/* Ban Customer Modal */}
       {customerToBan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md border-0 shadow-2xl">

@@ -1,8 +1,20 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { LoginForm } from '@/components/login-form'
+import { tokenManager } from '@/lib/api'
 
 export default function LoginPage() {
+  const router = useRouter()
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (tokenManager.isAuthenticated()) {
+      router.push('/dashboard')
+    }
+  }, [router])
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       <div

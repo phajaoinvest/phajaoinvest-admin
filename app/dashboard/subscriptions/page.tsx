@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -20,87 +20,230 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { useDashboardStore } from '@/lib/dashboard-store'
-import { Search, MoreVertical, Eye, CheckCircle, XCircle, Trash2, Download, Calendar, FileText } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { subscriptionsApi } from '@/lib/api/subscriptions'
+import type { PendingPremiumMembership } from '@/lib/types'
+import { Search, MoreVertical, Eye, CheckCircle, XCircle, Download, Calendar, FileText, Loader2, RefreshCw, ExternalLink } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+
+// Map subscription duration to display text
+const getDurationLabel = (months: number | null): string => {
+  if (!months) return 'N/A'
+  if (months === 3) return '3 Months'
+  if (months === 6) return '6 Months'
+  if (months === 12) return '12 Months'
+  return `${months} Months`
+}
+
+// Map payment status to display status
+const getDisplayStatus = (status: string): 'pending' | 'active' | 'cancelled' | 'expired' => {
+  switch (status?.toLowerCase()) {
+    case 'succeeded':
+      return 'active'
+    case 'pending':
+    case 'payment_slip_submitted':
+    case 'processing':
+      return 'pending'
+    case 'failed':
+    case 'canceled':
+      return 'cancelled'
+    case 'refunded':
+    case 'partially_refunded':
+      return 'expired'
+    default:
+      return 'pending'
+  }
+}
 
 export default function SubscriptionsPage() {
-  const subscriptions = useDashboardStore((state) => state.subscriptions)
-  const updateSubscriptionStatus = useDashboardStore((state) => state.updateSubscriptionStatus)
-  const deleteSubscription = useDashboardStore((state) => state.deleteSubscription)
+  const { toast } = useToast()
+  
+  // State for API data
+  const [subscriptions, setSubscriptions] = useState<PendingPremiumMembership[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isActionLoading, setIsActionLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 10
 
+  // Filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [packageFilter, setPackageFilter] = useState<string>('all')
+  const [durationFilter, setDurationFilter] = useState<string>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [selectedSubscription, setSelectedSubscription] = useState<any>(null)
+
+  // Modal state
+  const [selectedSubscription, setSelectedSubscription] = useState<PendingPremiumMembership | null>(null)
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [approveModalOpen, setApproveModalOpen] = useState(false)
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [adminNotes, setAdminNotes] = useState('')
+  const [rejectionReason, setRejectionReason] = useState('')
 
-  const itemsPerPage = 10
+  // Fetch subscriptions from API
+  const fetchSubscriptions = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      console.log('Fetching subscriptions...', { page: currentPage, limit: itemsPerPage })
+      const response = await subscriptionsApi.getPending({
+        page: currentPage,
+        limit: itemsPerPage,
+      })
+      
+      console.log('API Response:', response)
+      
+      if (response.is_error) {
+        throw new Error(response.message || 'Failed to fetch subscriptions')
+      }
+      
+      const data = response.data || []
+      console.log('Subscriptions data:', data)
+      
+      setSubscriptions(data)
+      setTotalPages(response.totalPages || 1)
+      setTotalItems(response.total || 0)
+    } catch (err) {
+      console.error('Error fetching subscriptions:', err)
+      const message = err instanceof Error ? err.message : 'Failed to fetch subscriptions'
+      setError(message)
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentPage, toast])
 
+  // Initial fetch
+  useEffect(() => {
+    fetchSubscriptions()
+  }, [fetchSubscriptions])
+
+  // Filter subscriptions locally
   const filteredSubscriptions = useMemo(() => {
     return subscriptions.filter((sub) => {
+      const customerName = `${sub.customer_info.first_name} ${sub.customer_info.last_name}`.toLowerCase()
       const matchesSearch =
-        sub.customer_first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.customer_last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sub.package_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        customerName.includes(searchTerm.toLowerCase()) ||
+        sub.customer_info.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sub.customer_info.username?.toLowerCase().includes(searchTerm.toLowerCase())
 
-      const matchesStatus = statusFilter === 'all' || sub.status === statusFilter
-      const matchesPackage = packageFilter === 'all' || sub.package_type === packageFilter
+      const displayStatus = getDisplayStatus(sub.payment_info.status)
+      const matchesStatus = statusFilter === 'all' || displayStatus === statusFilter
 
-      const matchesStartDate = !startDate || new Date(sub.subscription_date) >= new Date(startDate)
-      const matchesEndDate = !endDate || new Date(sub.subscription_date) <= new Date(endDate)
+      const matchesDuration = durationFilter === 'all' || 
+        (sub.subscription_duration?.toString() === durationFilter)
 
-      return matchesSearch && matchesStatus && matchesPackage && matchesStartDate && matchesEndDate
+      const appliedDate = new Date(sub.applied_at)
+      const matchesStartDate = !startDate || appliedDate >= new Date(startDate)
+      const matchesEndDate = !endDate || appliedDate <= new Date(endDate)
+
+      return matchesSearch && matchesStatus && matchesDuration && matchesStartDate && matchesEndDate
     })
-  }, [subscriptions, searchTerm, statusFilter, packageFilter, startDate, endDate])
+  }, [subscriptions, searchTerm, statusFilter, durationFilter, startDate, endDate])
 
-  const paginatedSubscriptions = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
-    return filteredSubscriptions.slice(startIndex, startIndex + itemsPerPage)
-  }, [filteredSubscriptions, currentPage])
-
-  const totalPages = Math.ceil(filteredSubscriptions.length / itemsPerPage)
-
-  const handleApprove = () => {
-    if (selectedSubscription) {
-      updateSubscriptionStatus(selectedSubscription.id, 'active')
+  // Handle approve
+  const handleApprove = async () => {
+    if (!selectedSubscription) return
+    
+    setIsActionLoading(true)
+    try {
+      const response = await subscriptionsApi.approvePayment(
+        selectedSubscription.payment_info.payment_id,
+        adminNotes || undefined
+      )
+      
+      if (response.is_error) {
+        throw new Error(response.message || 'Failed to approve subscription')
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Subscription approved successfully',
+      })
+      
       setApproveModalOpen(false)
       setSelectedSubscription(null)
+      setAdminNotes('')
+      fetchSubscriptions()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to approve subscription'
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsActionLoading(false)
     }
   }
 
-  const handleReject = () => {
-    if (selectedSubscription) {
-      updateSubscriptionStatus(selectedSubscription.id, 'cancelled')
+  // Handle reject
+  const handleReject = async () => {
+    if (!selectedSubscription) return
+    
+    if (!rejectionReason.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please provide a rejection reason',
+        variant: 'destructive',
+      })
+      return
+    }
+    
+    setIsActionLoading(true)
+    try {
+      const response = await subscriptionsApi.rejectPayment(
+        selectedSubscription.payment_info.payment_id,
+        rejectionReason,
+        adminNotes || undefined
+      )
+      
+      if (response.is_error) {
+        throw new Error(response.message || 'Failed to reject subscription')
+      }
+      
+      toast({
+        title: 'Success',
+        description: 'Subscription rejected successfully',
+      })
+      
       setRejectModalOpen(false)
       setSelectedSubscription(null)
+      setRejectionReason('')
+      setAdminNotes('')
+      fetchSubscriptions()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to reject subscription'
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsActionLoading(false)
     }
   }
 
-  const handleDelete = () => {
-    if (selectedSubscription) {
-      deleteSubscription(selectedSubscription.id)
-      setDeleteModalOpen(false)
-      setSelectedSubscription(null)
-    }
-  }
-
+  // Export to CSV
   const exportToCSV = () => {
-    const headers = ['Customer Name', 'Email', 'Package', 'Subscription Date', 'Expiry Date', 'Status', 'Amount']
+    const headers = ['Customer Name', 'Email', 'Duration', 'Applied Date', 'Status', 'Amount']
     const rows = filteredSubscriptions.map(sub => [
-      `${sub.customer_first_name} ${sub.customer_last_name}`,
-      sub.customer_email,
-      sub.package_name,
-      format(new Date(sub.subscription_date), 'MMM dd, yyyy'),
-      format(new Date(sub.expired_date), 'MMM dd, yyyy'),
-      sub.status,
-      `${sub.currency} ${sub.amount.toFixed(2)}`
+      `${sub.customer_info.first_name} ${sub.customer_info.last_name}`,
+      sub.customer_info.email,
+      getDurationLabel(sub.subscription_duration),
+      format(new Date(sub.applied_at), 'MMM dd, yyyy'),
+      getDisplayStatus(sub.payment_info.status),
+      `USD ${sub.payment_info.amount?.toFixed(2) || '0.00'}`
     ])
 
     const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
@@ -113,25 +256,27 @@ export default function SubscriptionsPage() {
   }
 
   const getStatusBadge = (status: string) => {
+    const displayStatus = getDisplayStatus(status)
     const variants: Record<string, string> = {
       active: 'bg-green-500/10 text-green-500 border-green-500/20',
       pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
       expired: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
       cancelled: 'bg-red-500/10 text-red-500 border-red-500/20',
     }
-    return variants[status] || variants.active
+    return variants[displayStatus] || variants.pending
   }
 
+  // Calculate stats
   const stats = useMemo(() => {
-    const total = subscriptions.length
-    const active = subscriptions.filter(s => s.status === 'active').length
-    const pending = subscriptions.filter(s => s.status === 'pending').length
+    const total = totalItems
+    const pending = subscriptions.filter(s => getDisplayStatus(s.payment_info.status) === 'pending').length
+    const active = subscriptions.filter(s => getDisplayStatus(s.payment_info.status) === 'active').length
     const totalRevenue = subscriptions
-      .filter(s => s.status === 'active')
-      .reduce((sum, s) => sum + s.amount, 0)
+      .filter(s => getDisplayStatus(s.payment_info.status) === 'active')
+      .reduce((sum, s) => sum + (s.payment_info.amount || 0), 0)
 
     return { total, active, pending, totalRevenue }
-  }, [subscriptions])
+  }, [subscriptions, totalItems])
 
   return (
     <div className="space-y-6">
@@ -187,14 +332,14 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* Table Card with Filters */}
-      <Card className="bg-card border rounde-sm">
+      <Card className="bg-card border rounded-sm">
         <div className="p-4 space-y-4">
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
             <div className="relative lg:col-span-2">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
-                placeholder="Search by customer or package..."
+                placeholder="Search by customer..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 h-9 bg-background border-border/40"
@@ -214,20 +359,24 @@ export default function SubscriptionsPage() {
             </select>
 
             <select
-              value={packageFilter}
-              onChange={(e) => setPackageFilter(e.target.value)}
+              value={durationFilter}
+              onChange={(e) => setDurationFilter(e.target.value)}
               className="h-9 px-3 rounded-md border border-border/40 bg-background text-sm"
             >
-              <option value="all">All Packages</option>
-              <option value="basic">Basic</option>
-              <option value="premium">Premium</option>
-              <option value="elite">Elite</option>
-              <option value="pro">Pro</option>
+              <option value="all">All Durations</option>
+              <option value="3">3 Months</option>
+              <option value="6">6 Months</option>
+              <option value="12">12 Months</option>
             </select>
 
             <Button onClick={exportToCSV} variant="outline" className="h-9">
               <Download className="w-4 h-4 mr-2" />
               Export CSV
+            </Button>
+
+            <Button onClick={fetchSubscriptions} variant="outline" className="h-9" disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
           </div>
 
@@ -253,135 +402,152 @@ export default function SubscriptionsPage() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted/30 border-y border-border/40">
-              <tr>
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Package</th>
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Subscription Date</th>
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Expiry Date</th>
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
-                <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
-                <th className="text-center p-4 text-sm font-medium text-muted-foreground">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {paginatedSubscriptions.map((sub) => (
-                <tr key={sub.id} className="hover:bg-muted/20 transition-colors">
-                  <td className="p-4">
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {sub.customer_first_name} {sub.customer_last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{sub.customer_email}</p>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <p className="text-sm text-foreground">{sub.package_name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{sub.package_type}</p>
-                  </td>
-                  <td className="p-4 text-sm text-foreground">
-                    {format(new Date(sub.subscription_date), 'MMM dd, yyyy')}
-                  </td>
-                  <td className="p-4 text-sm text-foreground">
-                    {format(new Date(sub.expired_date), 'MMM dd, yyyy')}
-                  </td>
-                  <td className="p-4">
-                    <Badge variant="outline" className={`${getStatusBadge(sub.status)} capitalize`}>
-                      {sub.status}
-                    </Badge>
-                  </td>
-                  <td className="p-4 text-sm font-medium text-foreground">
-                    {sub.currency} ${sub.amount.toFixed(2)}
-                  </td>
-                  <td className="p-4">
-                    <div className="flex justify-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedSubscription(sub)
-                              setViewModalOpen(true)
-                            }}
-                          >
-                            <Eye className="w-4 h-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          {sub.status === 'pending' && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedSubscription(sub)
-                                  setApproveModalOpen(true)
-                                }}
-                                className="text-green-500"
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Approve
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedSubscription(sub)
-                                  setRejectModalOpen(true)
-                                }}
-                                className="text-orange-500"
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Reject
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedSubscription(sub)
-                              setDeleteModalOpen(true)
-                            }}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Loading/Error States */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        )}
 
-        {/* Pagination */}
-        <div className="p-4 border-t border-border/40 flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredSubscriptions.length)} of {filteredSubscriptions.length} subscriptions
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
+        {error && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={fetchSubscriptions} variant="outline">
+              Try Again
             </Button>
           </div>
-        </div>
+        )}
+
+        {/* Table */}
+        {!isLoading && !error && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted/30 border-y border-border/40">
+                <tr>
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Customer</th>
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Package</th>
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Applied Date</th>
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Status</th>
+                  <th className="text-left p-4 text-sm font-medium text-muted-foreground">Amount</th>
+                  <th className="text-center p-4 text-sm font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {filteredSubscriptions.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      No pending subscriptions found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSubscriptions.map((sub) => (
+                    <tr key={sub.payment_info.payment_id} className="hover:bg-muted/20 transition-colors">
+                      <td className="p-4">
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {sub.customer_info.first_name} {sub.customer_info.last_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{sub.customer_info.email}</p>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <p className="text-sm text-foreground">Premium Membership</p>
+                        <p className="text-xs text-muted-foreground">{getDurationLabel(sub.subscription_duration)}</p>
+                      </td>
+                      <td className="p-4 text-sm text-foreground">
+                        {format(new Date(sub.applied_at), 'MMM dd, yyyy')}
+                      </td>
+                      <td className="p-4">
+                        <Badge variant="outline" className={`${getStatusBadge(sub.payment_info.status)} capitalize`}>
+                          {getDisplayStatus(sub.payment_info.status)}
+                        </Badge>
+                      </td>
+                      <td className="p-4 text-sm font-medium text-foreground">
+                        USD ${sub.payment_info.amount?.toFixed(2) || '0.00'}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex justify-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedSubscription(sub)
+                                  setViewModalOpen(true)
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              {getDisplayStatus(sub.payment_info.status) === 'pending' && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedSubscription(sub)
+                                      setApproveModalOpen(true)
+                                    }}
+                                    className="text-green-500"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Approve
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedSubscription(sub)
+                                      setRejectModalOpen(true)
+                                    }}
+                                    className="text-orange-500"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-2" />
+                                    Reject
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && !error && (
+          <div className="p-4 border-t border-border/40 flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredSubscriptions.length} of {totalItems} subscriptions
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <span className="flex items-center px-3 text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* View Details Modal */}
@@ -398,11 +564,15 @@ export default function SubscriptionsPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-muted-foreground">Name</p>
-                    <p className="font-medium">{selectedSubscription.customer_first_name} {selectedSubscription.customer_last_name}</p>
+                    <p className="font-medium">{selectedSubscription.customer_info.first_name} {selectedSubscription.customer_info.last_name}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Email</p>
-                    <p className="font-medium">{selectedSubscription.customer_email}</p>
+                    <p className="font-medium">{selectedSubscription.customer_info.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Username</p>
+                    <p className="font-medium">{selectedSubscription.customer_info.username}</p>
                   </div>
                 </div>
               </div>
@@ -411,35 +581,63 @@ export default function SubscriptionsPage() {
                 <h3 className="text-sm font-semibold text-foreground mb-3">Subscription Information</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Package</p>
-                    <p className="font-medium">{selectedSubscription.package_name}</p>
+                    <p className="text-muted-foreground">Service Type</p>
+                    <p className="font-medium capitalize">{selectedSubscription.service_type?.replace(/_/g, ' ')}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Type</p>
-                    <p className="font-medium capitalize">{selectedSubscription.package_type}</p>
+                    <p className="text-muted-foreground">Duration</p>
+                    <p className="font-medium">{getDurationLabel(selectedSubscription.subscription_duration)}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Subscription Date</p>
-                    <p className="font-medium">{format(new Date(selectedSubscription.subscription_date), 'MMMM dd, yyyy')}</p>
+                    <p className="text-muted-foreground">Applied Date</p>
+                    <p className="font-medium">{format(new Date(selectedSubscription.applied_at), 'MMMM dd, yyyy')}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Expiry Date</p>
-                    <p className="font-medium">{format(new Date(selectedSubscription.expired_date), 'MMMM dd, yyyy')}</p>
+                    <p className="text-muted-foreground">Subscription Fee</p>
+                    <p className="font-medium">USD ${selectedSubscription.subscription_fee?.toFixed(2) || '0.00'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-3">Payment Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Payment ID</p>
+                    <p className="font-medium font-mono text-xs">{selectedSubscription.payment_info.payment_id}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Amount</p>
-                    <p className="font-medium">{selectedSubscription.currency} ${selectedSubscription.amount.toFixed(2)}</p>
+                    <p className="font-medium">USD ${selectedSubscription.payment_info.amount?.toFixed(2) || '0.00'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Paid At</p>
+                    <p className="font-medium">
+                      {selectedSubscription.payment_info.paid_at 
+                        ? format(new Date(selectedSubscription.payment_info.paid_at), 'MMMM dd, yyyy')
+                        : 'Not paid yet'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Status</p>
-                    <Badge variant="outline" className={`${getStatusBadge(selectedSubscription.status)} capitalize`}>
-                      {selectedSubscription.status}
+                    <Badge variant="outline" className={`${getStatusBadge(selectedSubscription.payment_info.status)} capitalize`}>
+                      {getDisplayStatus(selectedSubscription.payment_info.status)}
                     </Badge>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Auto Renew</p>
-                    <p className="font-medium">{selectedSubscription.auto_renew ? 'Yes' : 'No'}</p>
-                  </div>
+                  {selectedSubscription.payment_info.payment_slip_url && (
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground mb-2">Payment Slip</p>
+                      <a 
+                        href={selectedSubscription.payment_info.payment_slip_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-primary hover:underline"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View Payment Slip
+                      </a>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -463,15 +661,36 @@ export default function SubscriptionsPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedSubscription && (
-            <div className="py-4 space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Customer:</span> <span className="font-medium">{selectedSubscription.customer_first_name} {selectedSubscription.customer_last_name}</span></p>
-              <p><span className="text-muted-foreground">Package:</span> <span className="font-medium">{selectedSubscription.package_name}</span></p>
-              <p><span className="text-muted-foreground">Amount:</span> <span className="font-medium">{selectedSubscription.currency} ${selectedSubscription.amount.toFixed(2)}</span></p>
+            <div className="py-4 space-y-4">
+              <div className="space-y-2 text-sm">
+                <p><span className="text-muted-foreground">Customer:</span> <span className="font-medium">{selectedSubscription.customer_info.first_name} {selectedSubscription.customer_info.last_name}</span></p>
+                <p><span className="text-muted-foreground">Package:</span> <span className="font-medium">Premium Membership - {getDurationLabel(selectedSubscription.subscription_duration)}</span></p>
+                <p><span className="text-muted-foreground">Amount:</span> <span className="font-medium">USD ${selectedSubscription.payment_info.amount?.toFixed(2) || '0.00'}</span></p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="adminNotes">Admin Notes (Optional)</Label>
+                <Textarea
+                  id="adminNotes"
+                  placeholder="Add any notes about this approval..."
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                />
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleApprove} className="bg-green-500 hover:bg-green-600">
+            <Button variant="outline" onClick={() => {
+              setApproveModalOpen(false)
+              setAdminNotes('')
+            }}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleApprove} 
+              className="bg-green-500 hover:bg-green-600"
+              disabled={isActionLoading}
+            >
+              {isActionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Approve Subscription
             </Button>
           </DialogFooter>
@@ -491,43 +710,48 @@ export default function SubscriptionsPage() {
             </DialogDescription>
           </DialogHeader>
           {selectedSubscription && (
-            <div className="py-4 space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Customer:</span> <span className="font-medium">{selectedSubscription.customer_first_name} {selectedSubscription.customer_last_name}</span></p>
-              <p><span className="text-muted-foreground">Package:</span> <span className="font-medium">{selectedSubscription.package_name}</span></p>
-              <p><span className="text-muted-foreground">Amount:</span> <span className="font-medium">{selectedSubscription.currency} ${selectedSubscription.amount.toFixed(2)}</span></p>
+            <div className="py-4 space-y-4">
+              <div className="space-y-2 text-sm">
+                <p><span className="text-muted-foreground">Customer:</span> <span className="font-medium">{selectedSubscription.customer_info.first_name} {selectedSubscription.customer_info.last_name}</span></p>
+                <p><span className="text-muted-foreground">Package:</span> <span className="font-medium">Premium Membership - {getDurationLabel(selectedSubscription.subscription_duration)}</span></p>
+                <p><span className="text-muted-foreground">Amount:</span> <span className="font-medium">USD ${selectedSubscription.payment_info.amount?.toFixed(2) || '0.00'}</span></p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="rejectionReason">Rejection Reason <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="rejectionReason"
+                  placeholder="Provide a reason for rejection..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="adminNotesReject">Admin Notes (Optional)</Label>
+                <Textarea
+                  id="adminNotesReject"
+                  placeholder="Add any additional notes..."
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                />
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleReject} className="bg-orange-500 hover:bg-orange-600">
-              Reject Subscription
+            <Button variant="outline" onClick={() => {
+              setRejectModalOpen(false)
+              setRejectionReason('')
+              setAdminNotes('')
+            }}>
+              Cancel
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Modal */}
-      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="w-5 h-5" />
-              Delete Subscription
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this subscription? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          {selectedSubscription && (
-            <div className="py-4 space-y-2 text-sm">
-              <p><span className="text-muted-foreground">Customer:</span> <span className="font-medium">{selectedSubscription.customer_first_name} {selectedSubscription.customer_last_name}</span></p>
-              <p><span className="text-muted-foreground">Package:</span> <span className="font-medium">{selectedSubscription.package_name}</span></p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleDelete} variant="destructive">
-              Delete Subscription
+            <Button 
+              onClick={handleReject} 
+              className="bg-orange-500 hover:bg-orange-600"
+              disabled={isActionLoading || !rejectionReason.trim()}
+            >
+              {isActionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Reject Subscription
             </Button>
           </DialogFooter>
         </DialogContent>

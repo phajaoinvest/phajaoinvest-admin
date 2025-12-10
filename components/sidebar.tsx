@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { useUIStore } from '@/lib/ui-store'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import { Button } from '@/components/ui/button'
-import { BarChart3, Users, UserCog, Package, TrendingUp, Clock as Stock, Zap, CreditCard, LogOut, Settings, FileText } from 'lucide-react'
+import { BarChart3, Users, UserCog, Package, TrendingUp, Clock as Stock, Zap, CreditCard, LogOut, Settings, FileText, ChevronDown, ChevronRight, Briefcase } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -20,15 +21,27 @@ const navItems = [
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
+const serviceItems = [
+  { href: '/dashboard/services/premium-membership', label: 'Premium Membership' },
+  { href: '/dashboard/services/international-stock-accounts', label: 'International Stock Accounts' },
+  { href: '/dashboard/services/guaranteed-returns', label: 'Guaranteed Returns' },
+]
+
 export function Sidebar() {
   const pathname = usePathname()
   const logout = useAuthStore((state) => state.logout)
   const sidebarCollapsed = useUIStore((state) => state.sidebarCollapsed)
+  const user = useAuthStore((state) => state.user)
+  const [servicesExpanded, setServicesExpanded] = useState(
+    pathname.startsWith('/dashboard/services')
+  )
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     window.location.href = '/login'
   }
+
+  const isServiceActive = serviceItems.some((item) => pathname === item.href)
 
   return (
     <aside
@@ -50,7 +63,7 @@ export function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -69,14 +82,61 @@ export function Sidebar() {
             </Link>
           )
         })}
+
+        {/* Services Dropdown */}
+        <div>
+          <button
+            onClick={() => setServicesExpanded(!servicesExpanded)}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-md text-sm font-medium transition-all duration-200 ${isServiceActive
+              ? 'bg-gradient-to-r from-sidebar-primary to-sidebar-primary/80 text-sidebar-primary-foreground shadow-md'
+              : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+              }`}
+            title={sidebarCollapsed ? 'Services' : undefined}
+          >
+            <Briefcase className="w-4 h-4 flex-shrink-0" />
+            {!sidebarCollapsed && (
+              <>
+                <span className="flex-1 text-left">Services</span>
+                {servicesExpanded ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {/* Service Sub-items */}
+          {servicesExpanded && !sidebarCollapsed && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-2">
+              {serviceItems.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`block px-3 py-2 rounded-md text-sm transition-all duration-200 ${isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
+                      }`}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border space-y-3 flex-shrink-0">
-        {!sidebarCollapsed && (
+        {!sidebarCollapsed && user && (
           <div className="px-4 py-3 bg-gradient-to-r from-primary/8 to-primary/5 rounded-lg text-xs border border-primary/10">
-            <p className="font-semibold text-sidebar-foreground">Admin</p>
-            <p className="text-sidebar-foreground/70 mt-0.5 text-xs">admin@example.com</p>
+            <p className="font-semibold text-sidebar-foreground">{user.username}</p>
+            <p className="text-sidebar-foreground/70 mt-0.5 text-xs">
+              {user.role?.name || 'Admin'}
+            </p>
           </div>
         )}
         <Button

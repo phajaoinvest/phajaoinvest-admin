@@ -159,7 +159,7 @@ export default function StockPicksPage() {
     if (isEditing && selectedPick) {
       updateStockPick(selectedPick.id, pickData)
     } else {
-      addStockPick(pickData as any)
+      addStockPick(pickData as Omit<StockPick, 'id' | 'created_at' | 'updated_at'>)
     }
     setShowModal(false)
   }
@@ -467,7 +467,7 @@ export default function StockPicksPage() {
                   <label className="text-sm font-medium mb-1 block">Status *</label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'pending' | 'approved' | 'rejected' })}
                     className="w-full px-3 py-2 text-sm rounded-md border border-border/40 bg-background"
                   >
                     <option value="pending">Pending</option>
@@ -479,7 +479,7 @@ export default function StockPicksPage() {
                   <label className="text-sm font-medium mb-1 block">Availability *</label>
                   <select
                     value={formData.availability}
-                    onChange={(e) => setFormData({ ...formData, availability: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, availability: e.target.value as 'available' | 'sold_out' | 'coming_soon' })}
                     className="w-full px-3 py-2 text-sm rounded-md border border-border/40 bg-background"
                   >
                     <option value="available">Available</option>
@@ -539,7 +539,7 @@ export default function StockPicksPage() {
                   <label className="text-sm font-medium mb-1 block">Risk Level</label>
                   <select
                     value={formData.risk_level || ''}
-                    onChange={(e) => setFormData({ ...formData, risk_level: e.target.value as any || null })}
+                    onChange={(e) => setFormData({ ...formData, risk_level: (e.target.value as 'low' | 'medium' | 'high' | 'very_high') || null })}
                     className="w-full px-3 py-2 text-sm rounded-md border border-border/40 bg-background"
                   >
                     <option value="">Select risk level</option>
@@ -553,7 +553,7 @@ export default function StockPicksPage() {
                   <label className="text-sm font-medium mb-1 block">Recommendation</label>
                   <select
                     value={formData.recommendation || ''}
-                    onChange={(e) => setFormData({ ...formData, recommendation: e.target.value as any || null })}
+                    onChange={(e) => setFormData({ ...formData, recommendation: (e.target.value as 'strong_buy' | 'buy' | 'hold' | 'sell' | 'strong_sell') || null })}
                     className="w-full px-3 py-2 text-sm rounded-md border border-border/40 bg-background"
                   >
                     <option value="">Select recommendation</option>
