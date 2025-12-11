@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { usePagination } from '@/hooks'
 import { env } from '@/lib/config/env'
 import { tokenManager } from '@/lib/api/client'
 import {
@@ -96,12 +97,11 @@ export default function TransfersPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [pagination, setPagination] = useState<PaginationMeta>({
-    total: 0,
-    page: 1,
-    limit: 10,
-    totalPages: 0,
-  })
+  
+  // Pagination hook
+  const { page, limit, setPage, setLimit, updateFromMeta } = usePagination({ initialLimit: 10 })
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
 
   // Modal state
   const [viewModalOpen, setViewModalOpen] = useState(false)
@@ -133,8 +133,8 @@ export default function TransfersPage() {
     setError(null)
     try {
       const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
+        page: page.toString(),
+        limit: limit.toString(),
         sort: 'created_at',
         order: 'DESC',
       })
@@ -164,7 +164,9 @@ export default function TransfersPage() {
 
       const result = await response.json()
       setTransfers(result.data || [])
-      setPagination({
+      setTotalItems(result.total || 0)
+      setTotalPages(result.totalPages || 0)
+      updateFromMeta({
         total: result.total || 0,
         page: result.page || 1,
         limit: result.limit || 10,
@@ -175,7 +177,7 @@ export default function TransfersPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [pagination.page, pagination.limit, startDate, endDate])
+  }, [page, limit, startDate, endDate, updateFromMeta])
 
   useEffect(() => {
     fetchStats()
@@ -486,32 +488,51 @@ export default function TransfersPage() {
               </Table>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Showing {filteredTransfers.length} of {pagination.total} transfers
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                    disabled={pagination.page === 1}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                  <span className="text-sm">
-                    Page {pagination.page} of {pagination.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPagination((p) => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
-                    disabled={pagination.page === pagination.totalPages}
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {filteredTransfers.length > 0 ? ((page - 1) * limit) + 1 : 0}-
+                    {Math.min(page * limit, totalItems)} of {totalItems} transfers
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <select
+                      value={limit}
+                      onChange={(e) => setLimit(Number(e.target.value))}
+                      className="h-8 px-2 rounded-md border border-border text-sm bg-background"
+                    >
+                      <option value={10}>10 per page</option>
+                      <option value={25}>25 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                    </select>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(Math.max(1, page - 1))}
+                        disabled={page === 1 || isLoading}
+                        className="h-8"
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      <span className="flex items-center px-3 text-sm">
+                        Page {page} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(Math.min(totalPages, page + 1))}
+                        disabled={page === totalPages || isLoading}
+                        className="h-8"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </CardContent>

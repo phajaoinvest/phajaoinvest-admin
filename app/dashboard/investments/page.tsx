@@ -376,10 +376,11 @@ export default function InvestmentsPage() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+              <div className="text-sm text-muted-foreground">
+                Showing {pendingInvestments.length > 0 ? ((page - 1) * limit) + 1 : 0}-
+                {Math.min(page * limit, investmentsPagination.total)} of {investmentsPagination.total} investments
+              </div>
               <div className="flex items-center gap-4">
-                <div className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
-                </div>
                 <select
                   value={limit}
                   onChange={(e) => setLimit(Number(e.target.value))}
@@ -388,27 +389,33 @@ export default function InvestmentsPage() {
                   <option value={10}>10 per page</option>
                   <option value={25}>25 per page</option>
                   <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
                 </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(Math.max(1, page - 1))}
-                  disabled={page === 1 || isLoadingPending}
-                >
-                  <ChevronLeft className="w-4 h-4 mr-1" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(Math.min(totalPages, page + 1))}
-                  disabled={page === totalPages || isLoadingPending}
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(Math.max(1, page - 1))}
+                    disabled={page === 1 || isLoadingPending}
+                    className="h-8"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="flex items-center px-3 text-sm">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
+                    disabled={page === totalPages || isLoadingPending}
+                    className="h-8"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
               </div>
             </div>
           )}

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { usePagination } from '@/hooks'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +24,7 @@ import {
 import { subscriptionsApi } from '@/lib/api/subscriptions'
 import type { PremiumMembershipSubscription } from '@/lib/types'
 import { SubscriptionStatus } from '@/lib/types/subscriptions'
-import { Search, Eye, Download, Calendar, FileText, Loader2, RefreshCw, CheckCircle } from 'lucide-react'
+import { Search, Eye, Download, Calendar, FileText, Loader2, RefreshCw, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
@@ -64,11 +65,10 @@ export default function SubscriptionsPage() {
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
+  // Pagination hook
+  const { page, limit, setPage, setLimit, updateFromMeta } = usePagination({ initialLimit: 10 })
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
-  const itemsPerPage = 10
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
@@ -86,10 +86,10 @@ export default function SubscriptionsPage() {
     setIsLoading(true)
     setError(null)
     try {
-      console.log('Fetching subscriptions...', { page: currentPage, limit: itemsPerPage, status: statusFilter, search: searchTerm })
+      console.log('Fetching subscriptions...', { page: page, limit: limit, status: statusFilter, search: searchTerm })
       const response = await subscriptionsApi.getAll({
-        page: currentPage,
-        limit: itemsPerPage,
+        page: page,
+        limit: limit,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         search: searchTerm || undefined,
       })
@@ -106,6 +106,12 @@ export default function SubscriptionsPage() {
       setSubscriptions(data)
       setTotalPages(response.totalPages || 1)
       setTotalItems(response.total || 0)
+      updateFromMeta({
+        total: response.total || 0,
+        page: response.page || 1,
+        limit: response.limit || 10,
+        totalPages: response.totalPages || 1,
+      })
     } catch (err) {
       console.error('Error fetching subscriptions:', err)
       const message = err instanceof Error ? err.message : 'Failed to fetch subscriptions'
@@ -118,7 +124,7 @@ export default function SubscriptionsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [currentPage, statusFilter, searchTerm, toast])
+  }, [page, limit, statusFilter, searchTerm, updateFromMeta, toast])
 
   // Initial fetch
   useEffect(() => {
@@ -386,31 +392,48 @@ export default function SubscriptionsPage() {
         )}
 
         {/* Pagination */}
-        {!isLoading && !error && (
+        {!isLoading && !error && totalPages > 1 && (
           <div className="p-4 border-t border-border/40 flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              Showing {filteredSubscriptions.length} of {totalItems} subscriptions
+              Showing {filteredSubscriptions.length > 0 ? ((page - 1) * limit) + 1 : 0}-
+              {Math.min(page * limit, totalItems)} of {totalItems} subscriptions
             </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
+            <div className="flex items-center gap-4">
+              <select
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+                className="h-8 px-2 rounded-md border border-border text-sm bg-background"
               >
-                Previous
-              </Button>
-              <span className="flex items-center px-3 text-sm text-muted-foreground">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+                <option value={100}>100 per page</option>
+              </select>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1 || isLoading}
+                  className="h-8"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Previous
+                </Button>
+                <span className="flex items-center px-3 text-sm">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages || isLoading}
+                  className="h-8"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
             </div>
           </div>
         )}

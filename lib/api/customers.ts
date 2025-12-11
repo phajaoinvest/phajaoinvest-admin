@@ -47,6 +47,83 @@ export const customersApi = {
   },
 
   /**
+   * Get comprehensive customer details with KYC, documents, and services
+   */
+  async getDetailed(id: string, serviceType?: string) {
+    const params = serviceType ? { service_type: serviceType } : undefined
+    return apiClient.get<{
+      id: string
+      username: string
+      email: string
+      first_name: string
+      last_name: string
+      phone_number: string | null
+      profile: string | null
+      status: string
+      isVerify: boolean
+      created_at: string
+      updated_at: string
+      kyc_records: Array<{
+        id: string
+        kyc_level: string
+        status: string
+        dob: string | null
+        nationality: string | null
+        marital_status: string | null
+        employment_status: string | null
+        annual_income: string | null
+        employer_name: string | null
+        occupation: string | null
+        investment_experience: number | null
+        dependent_number: number | null
+        source_of_funds: string | null
+        risk_tolerance: string | null
+        pep_flag: boolean | null
+        tax_id: string | null
+        fatca_status: string | null
+        submitted_at: string | null
+        reviewed_at: string | null
+        reviewed_by: string | null
+        rejection_reason: string | null
+        created_at: string
+        updated_at: string
+      }>
+      documents: Array<{
+        id: string
+        doc_type: string
+        storage_ref: string
+        kyc_id: string | null
+        metadata: Record<string, unknown> | null
+        created_at: string
+      }>
+      addresses: Array<{
+        id: string
+        address_line: string | null
+        village: string | null
+        postal_code: string | null
+        country_id: string | null
+        province_id: string | null
+        district_id: string | null
+        is_primary: boolean
+        created_at: string
+      }>
+      services: Array<{
+        service_id: string
+        service_type: string
+        active: boolean
+        status: string
+        subscription_duration: number | null
+        subscription_fee: number | null
+        subscription_expires_at: string | null
+        invested_amount: number
+        balance: number
+        applied_at: string
+        kyc_id: string | null
+      }>
+    }>(`/customers/${id}/detailed`, params)
+  },
+
+  /**
    * Create new customer
    */
   async create(data: CreateCustomerRequest) {

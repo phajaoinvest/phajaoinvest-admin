@@ -456,47 +456,45 @@ export default function CustomersPage() {
           )}
         </CardContent>
 
-        {totalPages > 1 && (
-          <div className="border-t border-border/50 px-4 py-3 flex items-center justify-between bg-secondary/10">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
-              </div>
-              <select
-                value={limit}
-                onChange={(e) => setLimit(Number(e.target.value))}
-                className="h-8 px-2 rounded-md border border-border text-sm bg-background"
-              >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
+        <div className="border-t border-border/50 px-4 py-3 flex items-center justify-between bg-secondary/10">
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground">
+              Page {page} of {totalPages}
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1 || isLoading}
-                className="h-8"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages || isLoading}
-                className="h-8"
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
+            <select
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+              className="h-8 px-2 rounded-md border border-border text-sm bg-background"
+            >
+              <option value={10}>10 per page</option>
+              <option value={25}>25 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+            </select>
           </div>
-        )}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1 || isLoading}
+              className="h-8"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages || isLoading}
+              className="h-8"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
       </Card>
 
       {/* Ban Customer Modal */}

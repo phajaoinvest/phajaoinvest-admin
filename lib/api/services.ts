@@ -112,7 +112,7 @@ export const servicesAdminApi = {
   /**
    * Get pending international stock account applications
    */
-  async getPendingInternationalStockAccounts(params?: {
+  async getInternationalStockAccounts(params?: {
     page?: number
     limit?: number
     kyc_status?: string
@@ -130,7 +130,7 @@ export const servicesAdminApi = {
   async getPendingGuaranteedReturns(params?: {
     page?: number
     limit?: number
-    payment_status?: string
+    kyc_status?: string
     search?: string
   }): Promise<PaginatedResponse<PendingServiceApplication>> {
     return apiClient.getPaginated<PendingServiceApplication>(

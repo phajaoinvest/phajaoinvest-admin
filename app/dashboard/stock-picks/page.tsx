@@ -28,8 +28,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Plus, Search, MoreVertical, Eye, Edit2, Trash2, TrendingUp, DollarSign, Target, Loader2, AlertCircle } from 'lucide-react'
+import { Plus, Search, MoreVertical, Eye, Edit2, Trash2, TrendingUp, DollarSign, Target, Loader2, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { usePagination } from '@/hooks'
 import {
   stockPicksAdminApi,
   type StockPick,
@@ -48,8 +49,8 @@ export default function StockPicksPage() {
   const [loading, setLoading] = useState(false)
   const [stockPicks, setStockPicks] = useState<StockPick[]>([])
   const [total, setTotal] = useState(0)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(0)
+  const { page, limit, setPage, setLimit, updateFromMeta } = usePagination({ initialLimit: 10 })
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -87,11 +88,18 @@ export default function StockPicksPage() {
     try {
       setLoading(true)
       const response = await stockPicksAdminApi.getAllStockPicks({
-        page: currentPage,
-        limit: pageSize,
+        page: page,
+        limit: limit,
       })
       setStockPicks(response.data)
       setTotal(response.total)
+      setTotalPages(response.totalPages || Math.ceil(response.total / limit))
+      updateFromMeta({
+        total: response.total,
+        page: response.page,
+        limit: response.limit,
+        totalPages: response.totalPages || Math.ceil(response.total / limit),
+      })
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -105,7 +113,7 @@ export default function StockPicksPage() {
 
   useEffect(() => {
     fetchStockPicks()
-  }, [currentPage, pageSize])
+  }, [page, limit])
 
   const filteredPicks = stockPicks.filter(
     (pick) =>
@@ -287,8 +295,6 @@ export default function StockPicksPage() {
         return 'bg-gray-500/10 text-gray-500'
     }
   }
-
-  const totalPages = Math.ceil(total / pageSize)
 
   return (
     <div className="space-y-6">
@@ -473,54 +479,51 @@ export default function StockPicksPage() {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-6">
-                <div className="text-sm text-muted-foreground">
-                  Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, total)} of {total} entries
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNumber
-                      if (totalPages <= 5) {
-                        pageNumber = i + 1
-                      } else if (currentPage <= 3) {
-                        pageNumber = i + 1
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNumber = totalPages - 4 + i
-                      } else {
-                        pageNumber = currentPage - 2 + i
-                      }
-
-                      return (
-                        <Button
-                          key={pageNumber}
-                          variant={currentPage === pageNumber ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNumber)}
-                        >
-                          {pageNumber}
-                        </Button>
-                      )
-                    })}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {filteredPicks.length > 0 ? ((page - 1) * limit) + 1 : 0}-
+                    {Math.min(page * limit, total)} of {total} entries
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
+                  <div className="flex items-center gap-4">
+                    <select
+                      value={limit}
+                      onChange={(e) => setLimit(Number(e.target.value))}
+                      className="h-8 px-2 rounded-md border border-border text-sm bg-background"
+                    >
+                      <option value={10}>10 per page</option>
+                      <option value={25}>25 per page</option>
+                      <option value={50}>50 per page</option>
+                      <option value={100}>100 per page</option>
+                    </select>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(Math.max(1, page - 1))}
+                        disabled={page === 1 || loading}
+                        className="h-8"
+                      >
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Previous
+                      </Button>
+                      <span className="flex items-center px-3 text-sm">
+                        Page {page} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage(Math.min(totalPages, page + 1))}
+                        disabled={page === totalPages || loading}
+                        className="h-8"
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </CardContent>

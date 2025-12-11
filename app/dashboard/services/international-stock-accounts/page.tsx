@@ -74,13 +74,15 @@ export default function InternationalStockAccountsPage() {
   const [approveModalOpen, setApproveModalOpen] = useState(false)
   const [rejectModalOpen, setRejectModalOpen] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [detailedCustomerData, setDetailedCustomerData] = useState<any>(null)
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false)
 
   // Fetch applications from API
   const fetchApplications = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await servicesAdminApi.getPendingInternationalStockAccounts({
+      const response = await servicesAdminApi.getInternationalStockAccounts({
         page: currentPage,
         limit: itemsPerPage,
         kyc_status: kycStatusFilter !== 'all' ? kycStatusFilter : undefined,
@@ -110,6 +112,30 @@ export default function InternationalStockAccountsPage() {
   useEffect(() => {
     fetchApplications()
   }, [fetchApplications])
+
+  // Fetch detailed customer data when viewing application
+  const fetchCustomerDetails = async (customerId: string) => {
+    setIsLoadingDetails(true)
+    try {
+      const { customersApi } = await import('@/lib/api')
+      const response = await customersApi.getDetailed(customerId, 'international_stock_account')
+
+      if (response.is_error) {
+        throw new Error(response.message || 'Failed to fetch customer details')
+      }
+
+      setDetailedCustomerData(response.data)
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load customer details'
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoadingDetails(false)
+    }
+  }
 
   // Handle approve
   const handleApprove = async (application: PendingServiceApplication) => {
@@ -329,31 +355,36 @@ export default function InternationalStockAccountsPage() {
                             onClick={() => {
                               setSelectedApplication(app)
                               setViewModalOpen(true)
+                              fetchCustomerDetails(app.customer_id)
                             }}
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedApplication(app)
-                              setApproveModalOpen(true)
-                            }}
-                            className="text-green-600"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Approve
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedApplication(app)
-                              setRejectModalOpen(true)
-                            }}
-                            className="text-red-600"
-                          >
-                            <XCircle className="w-4 h-4 mr-2" />
-                            Reject
-                          </DropdownMenuItem>
+                          {
+                            app.kyc_info?.kyc_status === 'pending' && <>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedApplication(app)
+                                  setApproveModalOpen(true)
+                                }}
+                                className="text-green-600"
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedApplication(app)
+                                  setRejectModalOpen(true)
+                                }}
+                                className="text-red-600"
+                              >
+                                <XCircle className="w-4 h-4 mr-2" />
+                                Reject
+                              </DropdownMenuItem>
+                            </>
+                          }
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -395,11 +426,182 @@ export default function InternationalStockAccountsPage() {
 
       {/* View Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Application Details</DialogTitle>
           </DialogHeader>
-          {selectedApplication && (
+          {isLoadingDetails ? (
+            <div className="flex items-center justify-center p-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : selectedApplication && detailedCustomerData ? (
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-semibold mb-3 text-lg border-b pb-2">Customer Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Name:</span>
+                    <div className="font-medium">
+                      {detailedCustomerData.first_name} {detailedCustomerData.last_name}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Email:</span>
+                    <div className="font-medium">{detailedCustomerData.email}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Username:</span>
+                    <div className="font-medium">{detailedCustomerData.username}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Phone:</span>
+                    <div className="font-medium">{detailedCustomerData.phone_number || '-'}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Status:</span>
+                    <div className="font-medium">{detailedCustomerData.status}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Email Verified:</span>
+                    <div className="font-medium">{detailedCustomerData.isVerify ? 'Yes' : 'No'}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Applied:</span>
+                    <div className="font-medium">{format(new Date(selectedApplication.applied_at), 'PPP')}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Customer Since:</span>
+                    <div className="font-medium">{format(new Date(detailedCustomerData.created_at), 'PPP')}</div>
+                  </div>
+                </div>
+              </div>
+
+              {detailedCustomerData.kyc_records && detailedCustomerData.kyc_records.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg border-b pb-2">KYC Information</h3>
+                  {detailedCustomerData.kyc_records.map((kyc: any) => (
+                    <div key={kyc.id} className="mb-4 p-4 border rounded-lg">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Level:</span>
+                          <div className="font-medium">{kyc.kyc_level}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Status:</span>
+                          <div>{getKycStatusBadge(kyc.status)}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Date of Birth:</span>
+                          <div className="font-medium">{kyc.dob ? format(new Date(kyc.dob), 'PP') : '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Nationality:</span>
+                          <div className="font-medium">{kyc.nationality || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Occupation:</span>
+                          <div className="font-medium">{kyc.occupation || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Employment:</span>
+                          <div className="font-medium">{kyc.employment_status || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Annual Income:</span>
+                          <div className="font-medium">{kyc.annual_income || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Source of Funds:</span>
+                          <div className="font-medium">{kyc.source_of_funds || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Investment Experience:</span>
+                          <div className="font-medium">{kyc.investment_experience ? `${kyc.investment_experience} years` : '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Risk Tolerance:</span>
+                          <div className="font-medium">{kyc.risk_tolerance || '-'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">PEP Status:</span>
+                          <div className="font-medium">{kyc.pep_flag ? 'Yes' : 'No'}</div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Submitted:</span>
+                          <div className="font-medium">{kyc.submitted_at ? format(new Date(kyc.submitted_at), 'PPP') : '-'}</div>
+                        </div>
+                        {kyc.reviewed_at && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Reviewed:</span>
+                            <div className="font-medium">{format(new Date(kyc.reviewed_at), 'PPP')}</div>
+                          </div>
+                        )}
+                        {kyc.rejection_reason && (
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground text-red-600">Rejection Reason:</span>
+                            <div className="font-medium text-red-600">{kyc.rejection_reason}</div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {detailedCustomerData.documents && detailedCustomerData.documents.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg border-b pb-2">Uploaded Documents ({detailedCustomerData.documents.length})</h3>
+                  <div className="grid grid-cols-1 gap-2">
+                    {detailedCustomerData.documents.map((doc: any) => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30">
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-5 h-5 text-primary" />
+                          <div>
+                            <div className="font-medium text-sm">{doc.doc_type.replace(/_/g, ' ').toUpperCase()}</div>
+                            <div className="text-xs text-muted-foreground">{format(new Date(doc.created_at), 'PPP')}</div>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => window.open(doc.storage_ref, '_blank')}>
+                          <Eye className="w-4 h-4 mr-1" />
+                          View
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {detailedCustomerData.addresses && detailedCustomerData.addresses.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg border-b pb-2">Addresses</h3>
+                  {detailedCustomerData.addresses.map((addr: any) => (
+                    <div key={addr.id} className="mb-2 p-3 border rounded-lg text-sm">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">{addr.address_line || 'No address line'}</div>
+                          <div className="text-muted-foreground mt-1">
+                            {addr.village && <div>Village: {addr.village}</div>}
+                            {addr.postal_code && <div>Postal Code: {addr.postal_code}</div>}
+                            <div className="text-xs mt-1">Created: {format(new Date(addr.created_at), 'PP')}</div>
+                          </div>
+                        </div>
+                        {addr.is_primary && <Badge className="ml-2" variant="default">Primary</Badge>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {(!detailedCustomerData.addresses || detailedCustomerData.addresses.length === 0) && (
+                <div>
+                  <h3 className="font-semibold mb-3 text-lg border-b pb-2">Addresses</h3>
+                  <div className="text-sm text-muted-foreground p-4 text-center border rounded-lg">
+                    No address information available
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : selectedApplication ? (
             <div className="space-y-4">
               <div>
                 <h3 className="font-semibold mb-2">Customer Information</h3>
@@ -442,11 +644,36 @@ export default function InternationalStockAccountsPage() {
                 </div>
               )}
             </div>
-          )}
-          <DialogFooter>
+          ) : null}
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setViewModalOpen(false)}>
               Close
             </Button>
+            {selectedApplication && selectedApplication.kyc_info?.kyc_status === 'pending' && (
+              <>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setViewModalOpen(false)
+                    setRejectModalOpen(true)
+                  }}
+                  disabled={isActionLoading}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  onClick={() => {
+                    setViewModalOpen(false)
+                    setApproveModalOpen(true)
+                  }}
+                  disabled={isActionLoading}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
