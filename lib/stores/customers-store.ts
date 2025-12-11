@@ -16,6 +16,15 @@ interface CustomersState {
   customers: Customer[]
   currentCustomer: Customer | null
   
+  // Stats
+  stats: {
+    totalCustomers: number
+    activeCount: number
+    inactiveCount: number
+    suspendedCount: number
+    verifiedCount: number
+  } | null
+  
   // Pagination
   pagination: PaginationMeta
   
@@ -24,6 +33,7 @@ interface CustomersState {
   
   // Loading states
   isLoading: boolean
+  isLoadingStats: boolean
   isCreating: boolean
   isUpdating: boolean
   isDeleting: boolean
@@ -32,6 +42,7 @@ interface CustomersState {
   error: string | null
 
   // Actions
+  fetchStats: () => Promise<void>
   fetchCustomers: (params?: PaginationParams & CustomerFilters) => Promise<void>
   fetchCustomerById: (id: string) => Promise<Customer | null>
   createCustomer: (data: Parameters<typeof customersApi.create>[0]) => Promise<Customer>
@@ -68,13 +79,28 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   // Initial state
   customers: [],
   currentCustomer: null,
+  stats: null,
   pagination: initialPagination,
   filters: initialFilters,
   isLoading: false,
+  isLoadingStats: false,
   isCreating: false,
   isUpdating: false,
   isDeleting: false,
   error: null,
+
+  // Fetch stats
+  fetchStats: async () => {
+    set({ isLoadingStats: true, error: null })
+
+    try {
+      const response = await customersApi.getStats()
+      set({ stats: response.data, isLoadingStats: false })
+    } catch (error) {
+      const message = (error as { message?: string })?.message || 'Failed to fetch customer stats'
+      set({ error: message, isLoadingStats: false })
+    }
+  },
 
   // Fetch customers with pagination and filters
   fetchCustomers: async (params) => {

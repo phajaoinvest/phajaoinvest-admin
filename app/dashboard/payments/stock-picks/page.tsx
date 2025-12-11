@@ -108,6 +108,8 @@ export default function StockPickPaymentsPage() {
     const [error, setError] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [filterStatus, setFilterStatus] = useState<'all' | 'selected' | 'payment_submitted' | 'approved' | 'rejected' | 'email_sent'>('payment_submitted')
+    const [startDate, setStartDate] = useState('')
+    const [endDate, setEndDate] = useState('')
     const [pagination, setPagination] = useState<PaginationMeta>({
         total: 0,
         page: 1,
@@ -155,6 +157,18 @@ export default function StockPickPaymentsPage() {
                 params.append('status', filterStatus)
             }
 
+            // Add date filters if provided
+            if (startDate !== '' && endDate !== '') {
+                if (startDate) {
+                    params.append('start_date', new Date(startDate).toISOString())
+                }
+                if (endDate) {
+                    const endDateTime = new Date(endDate)
+                    endDateTime.setHours(23, 59, 59, 999)
+                    params.append('end_date', endDateTime.toISOString())
+                }
+            }
+
             const response = await fetch(
                 `${env.apiUrl}/admin/stock-picks/customer-picks?${params}`,
                 {
@@ -179,7 +193,7 @@ export default function StockPickPaymentsPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [pagination.page, pagination.limit, filterStatus])
+    }, [pagination.page, pagination.limit, filterStatus, startDate, endDate])
 
     useEffect(() => {
         fetchStats()
@@ -361,6 +375,37 @@ export default function StockPickPaymentsPage() {
                                 <SelectItem value="rejected">Rejected</SelectItem>
                             </SelectContent>
                         </Select>
+                    </div>
+                    <div className="flex gap-4 items-end mt-4">
+                        <div className="flex-1">
+                            <label className="text-sm font-medium mb-2 block">Start Date</label>
+                            <Input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                placeholder="Start date"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="text-sm font-medium mb-2 block">End Date</label>
+                            <Input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                placeholder="End date"
+                            />
+                        </div>
+                        {(startDate || endDate) && (
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setStartDate('')
+                                    setEndDate('')
+                                }}
+                            >
+                                Clear Dates
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>

@@ -6,18 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { usePaymentsStore } from '@/lib/stores'
 import { useDebounce, usePagination } from '@/hooks'
-import type { PaymentStatus, Payment } from '@/lib/types'
-import { 
-  Search, 
-  Download, 
-  CreditCard, 
-  TrendingUp, 
-  Package, 
-  Zap, 
-  MoreVertical, 
-  Eye, 
-  Check, 
-  X, 
+import { type Payment, PaymentStatus, SubscriptionStatus } from '@/lib/types'
+import {
+  Search,
+  Download,
+  CreditCard,
+  TrendingUp,
+  Package,
+  Zap,
+  MoreVertical,
+  Eye,
+  Check,
+  X,
   AlertTriangle,
   RefreshCw,
   Loader2,
@@ -49,6 +49,8 @@ export default function PaymentsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'membership' | 'investment' | 'stock' | 'stock_pick'>('all')
   const [filterStatus, setFilterStatus] = useState<'all' | PaymentStatus>('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const debouncedSearch = useDebounce(searchTerm, 300)
 
   // Modal state
@@ -84,8 +86,18 @@ export default function PaymentsPage() {
     if (filterType !== 'all') {
       params.type = filterType
     }
+    if (startDate !== '' && endDate !== '') {
+      if (startDate) {
+        params.startDate = new Date(startDate).toISOString()
+      }
+      if (endDate) {
+        const endDateTime = new Date(endDate)
+        endDateTime.setHours(23, 59, 59, 999)
+        params.endDate = endDateTime.toISOString()
+      }
+    }
     fetchPendingPayments(params as Parameters<typeof fetchPendingPayments>[0])
-  }, [limit, debouncedSearch, filterStatus, filterType, fetchPendingPayments])
+  }, [limit, debouncedSearch, filterStatus, filterType, startDate, endDate, fetchPendingPayments])
 
   // Initial load only - runs once on mount
   useEffect(() => {
@@ -101,7 +113,7 @@ export default function PaymentsPage() {
       loadPayments(1)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filterStatus, filterType])
+  }, [debouncedSearch, filterStatus, filterType, startDate, endDate])
 
   // Refetch when page/limit changes (but not on initial load)
   useEffect(() => {
@@ -324,17 +336,6 @@ export default function PaymentsPage() {
               />
             </div>
             <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as 'all' | 'membership' | 'investment' | 'stock' | 'stock_pick')}
-              className="px-3 h-9 rounded-md border border-border text-sm bg-background"
-            >
-              <option value="all">All Types</option>
-              <option value="membership">Membership</option>
-              <option value="investment">Investment</option>
-              <option value="stock">Stock</option>
-              <option value="stock_pick">Stock Pick</option>
-            </select>
-            <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as 'all' | PaymentStatus)}
               className="px-3 h-9 rounded-md border border-border text-sm bg-background"
@@ -348,6 +349,41 @@ export default function PaymentsPage() {
               <option value="canceled">Canceled</option>
               <option value="refunded">Refunded</option>
             </select>
+          </div>
+          <div className="flex gap-4 items-end mt-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                placeholder="Start date"
+                className="h-9"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                placeholder="End date"
+                className="h-9"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate('')
+                }}
+                className="h-9"
+              >
+                Clear Dates
+              </Button>
+            )}
           </div>
 
           {isLoading ? (
@@ -402,7 +438,7 @@ export default function PaymentsPage() {
                               <Eye className="w-4 h-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            {payment.status === 'PENDING' && (
+                            {payment.status === PaymentStatus.PENDING && (
                               <>
                                 <DropdownMenuItem onClick={() => handleApprove(payment)} disabled={isApproving}>
                                   <Check className="w-4 h-4 mr-2 text-green-600" />

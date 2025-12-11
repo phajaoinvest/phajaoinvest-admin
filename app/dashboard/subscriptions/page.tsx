@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog'
 import { subscriptionsApi } from '@/lib/api/subscriptions'
 import type { PremiumMembershipSubscription } from '@/lib/types'
+import { SubscriptionStatus } from '@/lib/types/subscriptions'
 import { Search, Eye, Download, Calendar, FileText, Loader2, RefreshCw, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { formatCurrency, formatNumber } from '@/lib/utils'
@@ -35,34 +36,23 @@ const getDurationLabel = (months: number | null): string => {
   return `${months} Months`
 }
 
-// Map service active status and expiration to display status
-const getDisplayStatus = (
-  active: boolean,
-  expiresAt: string | null,
-  paymentStatus?: string | null
-): 'pending' | 'active' | 'cancelled' | 'expired' => {
-  const now = new Date()
-  const expiration = expiresAt ? new Date(expiresAt) : null
-
-  if (active && (!expiration || expiration > now)) {
-    return 'active'
+// Get display status label and color
+const getStatusDisplay = (status: string) => {
+  const statusLower = status.toLowerCase()
+  switch (statusLower) {
+    case SubscriptionStatus.ACTIVE.toLowerCase():
+      return { label: 'Active', color: 'bg-green-500/10 text-green-500 border-green-500/20' }
+    case SubscriptionStatus.PENDING.toLowerCase():
+      return { label: 'Pending', color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' }
+    case SubscriptionStatus.EXPIRED.toLowerCase():
+      return { label: 'Expired', color: 'bg-gray-500/10 text-gray-500 border-gray-500/20' }
+    case SubscriptionStatus.CANCELLED.toLowerCase():
+      return { label: 'Cancelled', color: 'bg-red-500/10 text-red-500 border-red-500/20' }
+    case SubscriptionStatus.SUSPENDED.toLowerCase():
+      return { label: 'Suspended', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' }
+    default:
+      return { label: status, color: 'bg-gray-500/10 text-gray-500 border-gray-500/20' }
   }
-
-  if (!active && paymentStatus) {
-    const status = paymentStatus.toLowerCase()
-    if (status === 'pending' || status === 'payment_slip_submitted' || status === 'processing') {
-      return 'pending'
-    }
-    if (status === 'failed' || status === 'canceled') {
-      return 'cancelled'
-    }
-  }
-
-  if (expiration && expiration <= now) {
-    return 'expired'
-  }
-
-  return 'pending'
 }
 
 export default function SubscriptionsPage() {
@@ -159,7 +149,7 @@ export default function SubscriptionsPage() {
       sub.customer_info.email,
       getDurationLabel(sub.subscription_duration),
       format(new Date(sub.applied_at), 'MMM dd, yyyy'),
-      getDisplayStatus(sub.active, sub.subscription_expires_at, sub.latest_payment_status),
+      getStatusDisplay(sub.status || 'pending').label,
       `USD ${formatNumber(sub.subscription_fee || 0)}`,
       sub.subscription_expires_at ? format(new Date(sub.subscription_expires_at), 'MMM dd, yyyy') : 'N/A'
     ])
@@ -173,24 +163,13 @@ export default function SubscriptionsPage() {
     link.click()
   }
 
-  const getStatusBadge = (active: boolean, expiresAt: string | null, paymentStatus?: string | null) => {
-    const displayStatus = getDisplayStatus(active, expiresAt, paymentStatus)
-    const variants: Record<string, string> = {
-      active: 'bg-green-500/10 text-green-500 border-green-500/20',
-      pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-      expired: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
-      cancelled: 'bg-red-500/10 text-red-500 border-red-500/20',
-    }
-    return variants[displayStatus] || variants.pending
-  }
-
   // Calculate stats
   const stats = useMemo(() => {
     const total = totalItems
-    const pending = subscriptions.filter(s => getDisplayStatus(s.active, s.subscription_expires_at, s.latest_payment_status) === 'pending').length
-    const active = subscriptions.filter(s => getDisplayStatus(s.active, s.subscription_expires_at, s.latest_payment_status) === 'active').length
+    const pending = subscriptions.filter(s => s.status?.toLowerCase() === SubscriptionStatus.PENDING).length
+    const active = subscriptions.filter(s => s.status?.toLowerCase() === SubscriptionStatus.ACTIVE).length
     const totalRevenue = subscriptions
-      .filter(s => getDisplayStatus(s.active, s.subscription_expires_at, s.latest_payment_status) === 'active')
+      .filter(s => s.status?.toLowerCase() === SubscriptionStatus.ACTIVE)
       .reduce((sum, s) => sum + (s.subscription_fee || 0), 0)
 
     return { total, active, pending, totalRevenue }
@@ -376,8 +355,8 @@ export default function SubscriptionsPage() {
                         {format(new Date(sub.applied_at), 'MMM dd, yyyy')}
                       </td>
                       <td className="p-4">
-                        <Badge variant="outline" className={`${getStatusBadge(sub.active, sub.subscription_expires_at, sub.latest_payment_status)} capitalize`}>
-                          {getDisplayStatus(sub.active, sub.subscription_expires_at, sub.latest_payment_status)}
+                        <Badge variant="outline" className={`${getStatusDisplay(sub.status || 'pending').color} capitalize`}>
+                          {getStatusDisplay(sub.status || 'pending').label}
                         </Badge>
                       </td>
                       <td className="p-4 text-sm font-medium text-foreground">
@@ -496,9 +475,9 @@ export default function SubscriptionsPage() {
                     <p className="font-medium font-mono text-xs">{selectedSubscription.service_id}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Active Status</p>
-                    <Badge variant="outline" className={`${getStatusBadge(selectedSubscription.active, selectedSubscription.subscription_expires_at, selectedSubscription.latest_payment_status)} capitalize`}>
-                      {getDisplayStatus(selectedSubscription.active, selectedSubscription.subscription_expires_at, selectedSubscription.latest_payment_status)}
+                    <p className="text-muted-foreground">Status</p>
+                    <Badge variant="outline" className={`${getStatusDisplay(selectedSubscription.status || 'pending').color} capitalize`}>
+                      {getStatusDisplay(selectedSubscription.status || 'pending').label}
                     </Badge>
                   </div>
                   <div>

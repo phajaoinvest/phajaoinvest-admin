@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { env } from '@/lib/config/env'
 import { tokenManager } from '@/lib/api/client'
-import { 
-  Search, 
-  Eye, 
-  Check, 
-  X, 
-  TrendingUp, 
+import {
+  Search,
+  Eye,
+  Check,
+  X,
+  TrendingUp,
   DollarSign,
   Clock,
   CheckCircle,
@@ -102,6 +102,8 @@ export default function InvestmentPaymentsPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [pagination, setPagination] = useState<PaginationMeta>({
     total: 0,
     page: 1,
@@ -144,8 +146,21 @@ export default function InvestmentPaymentsPage() {
         limit: pagination.limit.toString(),
       })
 
+      // Add date filters if provided
+      if (startDate !== '' && endDate !== '') {
+        if (startDate) {
+          params.append('start_date', new Date(startDate).toISOString())
+        }
+        if (endDate) {
+          // Set end date to end of day
+          const endDateTime = new Date(endDate)
+          endDateTime.setHours(23, 59, 59, 999)
+          params.append('end_date', endDateTime.toISOString())
+        }
+      }
+
       const response = await fetch(
-        `${env.apiUrl}/investment-requests/admin/pending?${params}`,
+        `${env.apiUrl}/investment-requests/admin?${params}`,
         {
           headers: {
             'Authorization': `Bearer ${tokenManager.getAccessToken()}`,
@@ -168,7 +183,7 @@ export default function InvestmentPaymentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [pagination.page, pagination.limit])
+  }, [pagination.page, pagination.limit, startDate, endDate])
 
   useEffect(() => {
     fetchStats()
@@ -358,6 +373,36 @@ export default function InvestmentPaymentsPage() {
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
+
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                placeholder="Start Date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-[160px]"
+              />
+              <Input
+                type="date"
+                placeholder="End Date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-[160px]"
+              />
+            </div>
+
+            {(startDate || endDate) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate('')
+                }}
+              >
+                Clear Dates
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

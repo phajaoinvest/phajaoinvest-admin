@@ -14,23 +14,27 @@ import { Button } from '@/components/ui/button'
 import { useCustomersStore } from '@/lib/stores'
 import { useDebounce, usePagination } from '@/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  Search, Eye, Ban, Trash2, MoreVertical, Mail, Phone, 
-  Calendar, ChevronLeft, ChevronRight, AlertTriangle, 
-  Download, UserRoundX, UserRoundCheck, Users, BadgeCheck, 
+import {
+  Search, Eye, Ban, Trash2, MoreVertical, Mail, Phone,
+  Calendar, ChevronLeft, ChevronRight, AlertTriangle,
+  Download, UserRoundX, UserRoundCheck, Users, BadgeCheck,
   ShieldX, Loader2, RefreshCw
 } from 'lucide-react'
-import type { Customer, CustomerStatus } from '@/lib/types'
+import type { Customer } from '@/lib/types'
+import { CustomerStatus } from '@/lib/types'
 
 export default function CustomersPage() {
   const router = useRouter()
-  
+
   // Store
-  const { 
-    customers, 
+  const {
+    customers,
+    stats,
     pagination: storePagination,
-    isLoading, 
+    isLoading,
+    isLoadingStats,
     error,
+    fetchStats,
     fetchCustomers,
     updateCustomer,
     deleteCustomer,
@@ -65,17 +69,18 @@ export default function CustomersPage() {
 
   useEffect(() => {
     loadCustomers()
-  }, [loadCustomers])
+    fetchStats()
+  }, [loadCustomers, fetchStats])
 
-  // Calculate stats from current data
-  const totalCustomers = storePagination.total
-  const activeCount = customers.filter(c => c.status === 'active').length
-  const verifiedCount = customers.filter(c => c.isVerify).length
-  const inactiveCount = customers.filter(c => c.status === 'inactive').length
+  // Use stats from backend, fallback to current page data if not loaded
+  const totalCustomers = stats?.totalCustomers
+  const activeCount = stats?.activeCount
+  const inactiveCount = stats?.inactiveCount
+  const suspendedCount = stats?.suspendedCount
 
   const handleDeleteConfirm = async () => {
     if (!customerToDelete) return
-    
+
     setIsDeleting(true)
     try {
       await deleteCustomer(customerToDelete.id)
@@ -89,10 +94,10 @@ export default function CustomersPage() {
 
   const handleBanConfirm = async () => {
     if (!customerToBan) return
-    
+
     setIsBanning(true)
     try {
-      await updateCustomer(customerToBan.id, { status: 'suspended' })
+      await updateCustomer(customerToBan.id, { status: CustomerStatus.SUSPENDED })
       setCustomerToBan(null)
     } catch {
       // Error handled in store
@@ -138,7 +143,7 @@ export default function CustomersPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-md cursor-pointer">
           <CardContent className="py-0 px-5">
             <div className="flex items-center justify-between">
@@ -171,17 +176,17 @@ export default function CustomersPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-md cursor-pointer">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow rounded-sm cursor-pointer">
           <CardContent className="py-0 px-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Verified
+                  Inactive
                 </p>
-                <p className="text-2xl font-bold text-primary mt-1">{verifiedCount}</p>
+                <p className="text-2xl font-bold text-gray-600 mt-1">{inactiveCount}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <BadgeCheck className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                <UserRoundX className="w-5 h-5 text-red-600" />
               </div>
             </div>
           </CardContent>
@@ -192,9 +197,9 @@ export default function CustomersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Inactive
+                  Suspended
                 </p>
-                <p className="text-2xl font-bold text-gray-600 mt-1">{inactiveCount}</p>
+                <p className="text-2xl font-bold text-gray-600 mt-1">{suspendedCount}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                 <UserRoundX className="w-5 h-5 text-red-600" />
@@ -243,7 +248,7 @@ export default function CustomersPage() {
                   <option value="all">All Status</option>
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
+                  <option value="ban">Baned</option>
                 </select>
                 <Input
                   type="date"
@@ -301,6 +306,9 @@ export default function CustomersPage() {
                       Status
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                      Services
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                       Verified
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
@@ -355,6 +363,32 @@ export default function CustomersPage() {
                         >
                           {customer.status}
                         </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap gap-1">
+                          {customer.services && customer.services.length > 0 ? (
+                            customer.services.map((service, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className={`text-[10px] px-1.5 py-0.5 ${service.service_type === 'premium_membership'
+                                  ? 'border-purple-300 bg-purple-50 text-purple-700'
+                                  : service.service_type === 'international_stock_account'
+                                    ? 'border-blue-300 bg-blue-50 text-blue-700'
+                                    : service.service_type === 'guaranteed_returns'
+                                      ? 'border-green-300 bg-green-50 text-green-700'
+                                      : service.service_type === 'premium_stock_picks'
+                                        ? 'border-orange-300 bg-orange-50 text-orange-700'
+                                        : 'border-gray-300 bg-gray-50 text-gray-700'
+                                  }`}
+                              >
+                                {service.service_type.replace(/_/g, ' ')}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         {customer.isVerify ? (

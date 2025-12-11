@@ -5,6 +5,18 @@
 import { BaseEntity, ServiceType, PaymentStatus } from './common'
 
 // ============================================================================
+// Subscription Status Enum (matches backend)
+// ============================================================================
+
+export enum SubscriptionStatus {
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  EXPIRED = 'expired',
+  CANCELLED = 'cancelled',
+  SUSPENDED = 'suspended',
+}
+
+// ============================================================================
 // Subscription Package
 // ============================================================================
 
@@ -59,6 +71,7 @@ export interface PremiumMembershipSubscription {
   subscription_package_id: string | null
   applied_at: string
   latest_payment_status?: PaymentStatus | string | null
+  status: SubscriptionStatus | string // Status from backend entity
 }
 
 // ============================================================================
@@ -109,6 +122,7 @@ export interface Payment extends BaseEntity {
     id: string
     first_name: string
     last_name: string | null
+    email: string | null
   }
   subscription?: CustomerSubscription
 }

@@ -20,6 +20,19 @@ import type {
 
 export const customersApi = {
   /**
+   * Get customer statistics
+   */
+  async getStats() {
+    return apiClient.get<{
+      totalCustomers: number
+      activeCount: number
+      inactiveCount: number
+      suspendedCount: number
+      verifiedCount: number
+    }>('/customers/stats')
+  },
+
+  /**
    * Get paginated list of customers
    */
   async getAll(params?: PaginationParams & CustomerFilters) {

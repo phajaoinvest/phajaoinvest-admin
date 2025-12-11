@@ -7,12 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { env } from '@/lib/config/env'
 import { tokenManager } from '@/lib/api/client'
-import { 
-  Search, 
-  Eye, 
-  Check, 
-  X, 
-  ArrowUpCircle, 
+import {
+  Search,
+  Eye,
+  Check,
+  X,
+  ArrowUpCircle,
   ArrowDownCircle,
   DollarSign,
   Clock,
@@ -94,6 +94,8 @@ export default function TransfersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<'all' | 'recharge' | 'withdraw' | 'invest'>('all')
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [pagination, setPagination] = useState<PaginationMeta>({
     total: 0,
     page: 1,
@@ -137,6 +139,18 @@ export default function TransfersPage() {
         order: 'DESC',
       })
 
+      // Add date filters if provided
+      if (startDate !== '' && endDate !== '') {
+        if (startDate) {
+          params.append('start_date', new Date(startDate).toISOString())
+        }
+        if (endDate) {
+          const endDateTime = new Date(endDate)
+          endDateTime.setHours(23, 59, 59, 999)
+          params.append('end_date', endDateTime.toISOString())
+        }
+      }
+
       const response = await fetch(
         `${env.apiUrl}/admin/transfer-history?${params}`,
         {
@@ -161,7 +175,7 @@ export default function TransfersPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [pagination.page, pagination.limit])
+  }, [pagination.page, pagination.limit, startDate, endDate])
 
   useEffect(() => {
     fetchStats()
@@ -367,6 +381,37 @@ export default function TransfersPage() {
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex gap-4 items-end mt-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">Start Date</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                placeholder="Start date"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-2 block">End Date</label>
+              <Input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                placeholder="End date"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStartDate('')
+                  setEndDate('')
+                }}
+              >
+                Clear Dates
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

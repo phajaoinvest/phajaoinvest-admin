@@ -20,6 +20,13 @@ export interface Customer extends BaseEntity, SoftDeletable {
   address: string | null
   kyc_level?: KycLevel
   kyc_status?: KycStatus
+  services?: Array<{
+    id: string
+    customer_id: string
+    service_type: string
+    active: boolean
+    applied_at: string
+  }>
 }
 
 // ============================================================================

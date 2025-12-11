@@ -13,9 +13,9 @@ const navItems = [
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/staff', label: 'Staff & Roles', icon: UserCog },
   { href: '/dashboard/packages', label: 'Packages', icon: Package },
-  { href: '/dashboard/subscriptions', label: 'Subscriptions', icon: FileText },
-  { href: '/dashboard/investments', label: 'Investments', icon: TrendingUp },
-  { href: '/dashboard/stock-accounts', label: 'Stock Accounts', icon: Stock },
+  // { href: '/dashboard/subscriptions', label: 'Subscriptions', icon: FileText },
+  // { href: '/dashboard/investments', label: 'Investments', icon: TrendingUp },
+  // { href: '/dashboard/stock-accounts', label: 'Stock Accounts', icon: Stock },
   { href: '/dashboard/stock-picks', label: 'Stock Picks', icon: Zap },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]

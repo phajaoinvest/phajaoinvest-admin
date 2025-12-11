@@ -84,7 +84,7 @@ export const investmentsAdminApi = {
    * Get pending investment requests
    */
   async getPendingRequests(params?: PaginationParams & InvestmentFilters) {
-    return apiClient.getPaginated<InvestmentRequest>('/investment-requests/admin/pending', params)
+    return apiClient.getPaginated<InvestmentRequest>('/investment-requests/admin', params)
   },
 
   /**
