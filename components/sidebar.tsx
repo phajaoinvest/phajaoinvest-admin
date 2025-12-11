@@ -50,8 +50,9 @@ export function Sidebar() {
     window.location.href = '/login'
   }
 
-  const isServiceActive = serviceItems.some((item) => pathname === item.href)
-  const isPaymentActive = paymentItems.some((item) => pathname === item.href)
+  const ab = serviceItems.map((item) => item.href)
+  const isServiceActive = serviceItems.some((item) => pathname.includes(item.href))
+  const isPaymentActive = paymentItems.some((item) => pathname.includes(item.href))
 
   return (
     <aside
@@ -120,7 +121,7 @@ export function Sidebar() {
           {servicesExpanded && !sidebarCollapsed && (
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-2">
               {serviceItems.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname.includes(item.href)
                 return (
                   <Link
                     key={item.href}
@@ -165,7 +166,7 @@ export function Sidebar() {
           {paymentsExpanded && !sidebarCollapsed && (
             <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-2">
               {paymentItems.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname.includes(item.href)
                 return (
                   <Link
                     key={item.href}

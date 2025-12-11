@@ -2,6 +2,7 @@
 
 import { format } from 'date-fns'
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,14 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { subscriptionsApi } from '@/lib/api/subscriptions'
 import type { PremiumMembershipSubscription } from '@/lib/types'
 import { SubscriptionStatus } from '@/lib/types/subscriptions'
@@ -57,11 +50,11 @@ const getStatusDisplay = (status: string) => {
 
 export default function SubscriptionsPage() {
   const { toast } = useToast()
+  const router = useRouter()
 
   // State for API data
   const [subscriptions, setSubscriptions] = useState<PremiumMembershipSubscription[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isActionLoading, setIsActionLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Pagination state
@@ -76,10 +69,6 @@ export default function SubscriptionsPage() {
   const [durationFilter, setDurationFilter] = useState<string>('all')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-
-  // Modal state
-  const [selectedSubscription, setSelectedSubscription] = useState<PremiumMembershipSubscription | null>(null)
-  const [viewModalOpen, setViewModalOpen] = useState(false)
 
   // Fetch subscriptions from API
   const fetchSubscriptions = useCallback(async () => {
@@ -119,6 +108,11 @@ export default function SubscriptionsPage() {
       setIsLoading(false)
     }
   }, [currentPage, statusFilter, searchTerm, toast])
+
+  // Navigate to detail page
+  const viewSubscriptionDetail = useCallback((sub: PremiumMembershipSubscription) => {
+    router.push(`/dashboard/services/premium-membership/${sub.service_id}`)
+  }, [router])
 
   // Initial fetch
   useEffect(() => {
@@ -229,85 +223,111 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* Table Card with Filters */}
-      <Card className="bg-card border rounded-sm">
-        <div className="p-4 space-y-4">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
-            <div className="relative lg:col-span-2">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search by customer..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9 bg-background border-border/40"
-              />
-            </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 rounded-md border border-border/40 bg-background text-sm"
+      <Card className="bg-card border-border/40">
+        {/* Header with Actions */}
+        <div className="flex items-center justify-between p-6 border-b border-border/40">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Premium Membership Subscriptions</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage and review customer subscription applications
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={exportToCSV}
+              variant="outline"
+              size="sm"
+              disabled={filteredSubscriptions.length === 0}
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="expired">Expired</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-
-            <select
-              value={durationFilter}
-              onChange={(e) => setDurationFilter(e.target.value)}
-              className="h-9 px-3 rounded-md border border-border/40 bg-background text-sm"
-            >
-              <option value="all">All Durations</option>
-              <option value="3">3 Months</option>
-              <option value="6">6 Months</option>
-              <option value="12">12 Months</option>
-            </select>
-
-            <Button onClick={exportToCSV} variant="outline" className="h-9">
               <Download className="w-4 h-4 mr-2" />
-              Export CSV
+              Export
             </Button>
-
-            <Button onClick={fetchSubscriptions} variant="outline" className="h-9" disabled={isLoading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <Button onClick={fetchSubscriptions} variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-            <Input
-              type="date"
-              placeholder="Start Date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="h-9 bg-background border-border/40"
-            />
-            <Input
-              type="date"
-              placeholder="End Date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="h-9 bg-background border-border/40"
-            />
+        {/* Filters */}
+        <div className="p-6 border-b border-border/40 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Search */}
+            <div className="relative col-span-1 md:col-span-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by customer name or email..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setCurrentPage(1) // Reset to first page on search
+                }}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-start">
+                  Status: {statusFilter === 'all' ? 'All' : getStatusDisplay(statusFilter).label}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => { setStatusFilter('all'); setCurrentPage(1) }}>
+                  All
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setStatusFilter(SubscriptionStatus.PENDING); setCurrentPage(1) }}>
+                  Pending
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setStatusFilter(SubscriptionStatus.ACTIVE); setCurrentPage(1) }}>
+                  Active
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setStatusFilter(SubscriptionStatus.EXPIRED); setCurrentPage(1) }}>
+                  Expired
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setStatusFilter(SubscriptionStatus.CANCELLED); setCurrentPage(1) }}>
+                  Cancelled
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Duration Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-start">
+                  Duration: {durationFilter === 'all' ? 'All' : getDurationLabel(Number(durationFilter))}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => setDurationFilter('all')}>
+                  All
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDurationFilter('3')}>
+                  3 Months
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDurationFilter('6')}>
+                  6 Months
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setDurationFilter('12')}>
+                  12 Months
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        {/* Loading/Error States */}
+        {/* Loading State */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="w-6 h-6 animate-spin text-primary mr-2" />
+            <span className="text-muted-foreground">Loading subscriptions...</span>
           </div>
         )}
 
-        {error && !isLoading && (
-          <div className="flex flex-col items-center justify-center py-12">
+        {/* Error State */}
+        {!isLoading && error && (
+          <div className="flex flex-col items-center justify-center p-8">
             <p className="text-destructive mb-4">{error}</p>
             <Button onClick={fetchSubscriptions} variant="outline">
               Try Again
@@ -333,7 +353,7 @@ export default function SubscriptionsPage() {
                 {filteredSubscriptions.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                      No pending subscriptions found
+                      No subscriptions found
                     </td>
                   </tr>
                 ) : (
@@ -368,10 +388,7 @@ export default function SubscriptionsPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => {
-                              setSelectedSubscription(sub)
-                              setViewModalOpen(true)
-                            }}
+                            onClick={() => viewSubscriptionDetail(sub)}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -391,7 +408,7 @@ export default function SubscriptionsPage() {
             <p className="text-sm text-muted-foreground">
               Showing {filteredSubscriptions.length} of {totalItems} subscriptions
             </p>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -415,102 +432,6 @@ export default function SubscriptionsPage() {
           </div>
         )}
       </Card>
-
-      {/* View Details Modal */}
-      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Subscription Details</DialogTitle>
-            <DialogDescription>Complete subscription information</DialogDescription>
-          </DialogHeader>
-          {selectedSubscription && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Customer Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Name</p>
-                    <p className="font-medium">{selectedSubscription.customer_info.first_name} {selectedSubscription.customer_info.last_name}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Email</p>
-                    <p className="font-medium">{selectedSubscription.customer_info.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Username</p>
-                    <p className="font-medium">{selectedSubscription.customer_info.username}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Subscription Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Service Type</p>
-                    <p className="font-medium capitalize">{selectedSubscription.service_type?.replace(/_/g, ' ')}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Duration</p>
-                    <p className="font-medium">{getDurationLabel(selectedSubscription.subscription_duration)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Applied Date</p>
-                    <p className="font-medium">{format(new Date(selectedSubscription.applied_at), 'MMMM dd, yyyy')}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Subscription Fee</p>
-                    <p className="font-medium">
-                      USD {formatNumber(selectedSubscription.subscription_fee)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Subscription Status</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Service ID</p>
-                    <p className="font-medium font-mono text-xs">{selectedSubscription.service_id}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Status</p>
-                    <Badge variant="outline" className={`${getStatusDisplay(selectedSubscription.status || 'pending').color} capitalize`}>
-                      {getStatusDisplay(selectedSubscription.status || 'pending').label}
-                    </Badge>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Expires At</p>
-                    <p className="font-medium">
-                      {selectedSubscription.subscription_expires_at
-                        ? format(new Date(selectedSubscription.subscription_expires_at), 'MMMM dd, yyyy')
-                        : 'No expiration'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Latest Payment Status</p>
-                    <p className="font-medium capitalize">
-                      {selectedSubscription.latest_payment_status?.replace(/_/g, ' ') || 'N/A'}
-                    </p>
-                  </div>
-                  {selectedSubscription.subscription_package_id && (
-                    <div className="col-span-2">
-                      <p className="text-muted-foreground">Package ID</p>
-                      <p className="font-medium font-mono text-xs">{selectedSubscription.subscription_package_id}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewModalOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-
     </div>
   )
 }

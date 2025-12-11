@@ -87,6 +87,7 @@ const SERVICES_ENDPOINTS = {
   PENDING_GUARANTEED_RETURNS: '/customers/services/admin/guaranteed-returns',
   PENDING_ALL_SERVICES: '/customers/services/admin/all-services',
   SERVICE_STATS: '/customers/services/admin/stats',
+  SERVICE_DETAIL: (serviceId: string) => `/customers/services/${serviceId}/detail`,
   APPROVE_SERVICE: (serviceId: string) => `/customers/services/${serviceId}/approve`,
   REJECT_SERVICE: (serviceId: string) => `/customers/services/${serviceId}/reject`,
   APPROVE_PAYMENT: (paymentId: string) => `/customers/services/admin/payments/${paymentId}/approve`,
@@ -158,6 +159,13 @@ export const servicesAdminApi = {
    */
   async getServiceStats(): Promise<ApiResponse<AllServicesStats>> {
     return apiClient.get<AllServicesStats>(SERVICES_ENDPOINTS.SERVICE_STATS)
+  },
+
+  /**
+   * Get detailed information for a specific service application
+   */
+  async getServiceDetail(serviceId: string): Promise<ApiResponse<any>> {
+    return apiClient.get<any>(SERVICES_ENDPOINTS.SERVICE_DETAIL(serviceId))
   },
 
   /**

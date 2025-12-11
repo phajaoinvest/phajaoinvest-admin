@@ -9,16 +9,16 @@ import { Badge } from '@/components/ui/badge'
 import { useInvestmentsStore } from '@/lib/stores'
 import { useDebounce, usePagination } from '@/hooks'
 import type { InvestmentStatus } from '@/lib/types'
-import { 
-  Search, 
-  TrendingUp, 
-  TrendingDown, 
-  Calendar, 
-  Download, 
-  MoreVertical, 
-  Eye, 
-  Ban, 
-  ChevronLeft, 
+import {
+  Search,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  Download,
+  MoreVertical,
+  Eye,
+  Ban,
+  ChevronLeft,
   ChevronRight,
   RefreshCw,
   Loader2,
@@ -33,7 +33,7 @@ import {
 
 export default function InvestmentsPage() {
   const router = useRouter()
-  
+
   // Store state
   const {
     pendingInvestments,

@@ -15,6 +15,7 @@ import type {
   UpdatePackageRequest,
   PendingPremiumMembership,
   PremiumMembershipSubscription,
+  PremiumMembershipDetail,
 } from '@/lib/types'
 
 // ============================================================================
@@ -75,6 +76,13 @@ export const subscriptionsApi = {
    */
   async getAll(params?: PaginationParams & { status?: string; search?: string }) {
     return apiClient.getPaginated<PremiumMembershipSubscription>('/customers/services/admin/premium-membership/subscriptions', params)
+  },
+
+  /**
+   * Get detailed premium membership subscription context (admin)
+   */
+  async getDetail(serviceId: string) {
+    return apiClient.get<PremiumMembershipDetail>(`/customers/services/admin/premium-membership/${serviceId}/details`)
   },
 
   /**

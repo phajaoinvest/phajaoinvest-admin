@@ -2,7 +2,7 @@
  * Subscription & Package Types
  */
 
-import { BaseEntity, ServiceType, PaymentStatus } from './common'
+import { BaseEntity, ServiceType, PaymentStatus, CustomerStatus, KycLevel, KycStatus } from './common'
 
 // ============================================================================
 // Subscription Status Enum (matches backend)
@@ -72,6 +72,74 @@ export interface PremiumMembershipSubscription {
   applied_at: string
   latest_payment_status?: PaymentStatus | string | null
   status: SubscriptionStatus | string // Status from backend entity
+}
+
+export interface PremiumMembershipDetail {
+  service: {
+    id: string
+    service_type: ServiceType | string
+    status: SubscriptionStatus | string
+    active: boolean
+    requires_payment: boolean
+    applied_at: string
+    subscription_duration: number | null
+    subscription_fee: number | null
+    subscription_expires_at: string | null
+    subscription_package_id: string | null
+    balance: number
+    invested_amount: number
+    kyc_id: string | null
+  }
+  customer: {
+    id: string
+    username: string
+    email: string
+    first_name: string
+    last_name: string | null
+    phone_number: string | null
+    status: CustomerStatus | string
+    isVerify: boolean
+    profile: string | null
+    created_at: string
+    updated_at: string
+  }
+  package: {
+    id: string
+    service_type: ServiceType | string
+    duration_months: number
+    price: number
+    currency: string
+    description: string | null
+    features: string[] | null
+    active: boolean
+  } | null
+  addresses: Array<{
+    id: string
+    address_line: string | null
+    village: string | null
+    postal_code: string | null
+    country_id: string | null
+    province_id: string | null
+    district_id: string | null
+    is_primary: boolean
+    created_at: string
+  }>
+  payments: Array<{
+    id: string
+    status: PaymentStatus | string
+    amount: number
+    currency: string
+    payment_method: string
+    payment_type: string
+    description: string | null
+    payment_slip_url: string | null
+    payment_slip_filename: string | null
+    payment_reference: string | null
+    admin_notes: string | null
+    paid_at: string | null
+    created_at: string
+    updated_at: string
+  }>
 }
 
 // ============================================================================
