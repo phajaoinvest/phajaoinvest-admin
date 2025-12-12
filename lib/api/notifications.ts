@@ -16,7 +16,7 @@ import type {
 
 export const notificationsApi = {
   /**
-   * Get all notifications for the current user
+   * Get all admin notifications with pagination
    * @param skip - Number of notifications to skip (default: 0)
    * @param take - Number of notifications to retrieve (default: 50)
    */
@@ -32,7 +32,7 @@ export const notificationsApi = {
       notifications: Notification[]
       total: number
       unreadCount: number
-    }>('/notifications', params)
+    }>('/admin/notifications', params)
     
     // Backend returns: { is_error, code, message, data: { notifications, total, unreadCount }, status_code }
     // We need to return the data object directly
@@ -40,31 +40,38 @@ export const notificationsApi = {
   },
 
   /**
-   * Get a single notification by ID
+   * Get a single admin notification by ID
    */
   getById: async (id: string): Promise<Notification> => {
-    const response = await apiClient.get<Notification>(`/notifications/${id}`)
+    const response = await apiClient.get<Notification>(`/admin/notifications/${id}`)
     return response.data
   },
 
   /**
-   * Mark notifications as read
-   * @param notificationIds - Array of notification IDs to mark as read. If empty, marks all as read.
+   * Mark a single admin notification as read
+   * @param notificationId - Notification ID to mark as read
    */
-  markAsRead: async (
-    notificationIds?: string[]
-  ): Promise<MarkAsReadResponse> => {
-    const response = await apiClient.post<MarkAsReadResponse>(
-      '/notifications/mark-read',
-      { notificationIds }
+  markAsRead: async (notificationId: string): Promise<{ success: boolean }> => {
+    const response = await apiClient.post<{ success: boolean }>(
+      `/admin/notifications/${notificationId}/read`
     )
     return response.data
   },
 
   /**
-   * Delete a notification
+   * Mark all admin notifications as read
+   */
+  markAllAsRead: async (): Promise<MarkAsReadResponse> => {
+    const response = await apiClient.post<MarkAsReadResponse>(
+      '/admin/notifications/read-all'
+    )
+    return response.data
+  },
+
+  /**
+   * Delete an admin notification
    */
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete<void>(`/notifications/${id}`)
+    await apiClient.delete<void>(`/admin/notifications/${id}`)
   },
 }

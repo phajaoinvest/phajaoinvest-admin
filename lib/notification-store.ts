@@ -103,7 +103,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     if (!notification || notification.isRead) return
 
     try {
-      await notificationsApi.markAsRead([id])
+      await notificationsApi.markAsRead(id)
       set({
         notifications: state.notifications.map((n) =>
           n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
@@ -120,7 +120,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   // Mark all notifications as read
   markAllAsRead: async () => {
     try {
-      await notificationsApi.markAsRead()
+      await notificationsApi.markAllAsRead()
       set((state) => ({
         notifications: state.notifications.map((n) => ({
           ...n,
