@@ -16,6 +16,7 @@ import { useNotifications } from '@/hooks'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { toast } from '@/hooks/use-toast'
+import { NotificationCategory } from '@/lib/types/notifications'
 
 export function NotificationDropdown() {
   const router = useRouter()
@@ -81,10 +82,48 @@ export function NotificationDropdown() {
     }
   }
 
+  const getNavigationPath = (notification: Notification): string | null => {
+    const { category, metadata } = notification
+    const entityId = metadata?.entityId as string | undefined
+
+    if (!entityId) return null
+
+    // Map notification categories to their detail pages
+    switch (category) {
+      case NotificationCategory.STOCK_PICK_PAYMENT:
+        return `/dashboard/payments/stock-picks/${entityId}`
+      
+      case NotificationCategory.PREMIUM_MEMBERSHIP:
+      case NotificationCategory.INTERNATIONAL_STOCK_ACCOUNT:
+      case NotificationCategory.GUARANTEED_RETURNS:
+        // These are service applications - check if it's a payment or service
+        if (metadata?.entityType === 'payment') {
+          return `/dashboard/payments/subscriptions/${entityId}`
+        }
+        return `/dashboard/services/${entityId}`
+      
+      case NotificationCategory.TOP_UP:
+        // Top-up transfers
+        return `/dashboard/payments/transfers/${entityId}`
+      
+      case NotificationCategory.INVESTMENT_REQUEST:
+      case NotificationCategory.INVESTMENT_RETURN:
+        // Investment requests
+        return `/dashboard/payments/investments/${entityId}`
+      
+      default:
+        return null
+    }
+  }
+
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
-    // Note: Backend notifications don't have a 'link' field yet
-    // You can add navigation logic based on notification type/metadata
+    
+    // Navigate to the appropriate details page
+    const path = getNavigationPath(notification)
+    if (path) {
+      router.push(path)
+    }
   }
 
   return (
