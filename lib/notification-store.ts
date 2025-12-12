@@ -3,9 +3,9 @@
  * Manages notifications with real-time Socket.IO integration
  */
 
-import { create } from 'zustand'
-import { notificationsApi } from './api'
-import type { Notification } from './types'
+import { create } from "zustand";
+import { notificationsApi } from "./api";
+import type { Notification } from "./types";
 
 // ============================================================================
 // Types
@@ -13,20 +13,20 @@ import type { Notification } from './types'
 
 interface NotificationStore {
   // State
-  notifications: Notification[]
-  unreadCount: number
-  isLoading: boolean
-  error: string | null
-  lastUpdate: number // Timestamp of last update for reactive triggers
+  notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
+  error: string | null;
+  lastUpdate: number; // Timestamp of last update for reactive triggers
 
   // Actions
-  fetchNotifications: () => Promise<void>
-  addNotification: (notification: Notification) => void
-  markAsRead: (id: string) => Promise<void>
-  markAllAsRead: () => Promise<void>
-  deleteNotification: (id: string) => Promise<void>
-  clearAll: () => void
-  setError: (error: string | null) => void
+  fetchNotifications: () => Promise<void>;
+  addNotification: (notification: Notification) => void;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  clearAll: () => void;
+  setError: (error: string | null) => void;
 }
 
 // ============================================================================
@@ -35,9 +35,8 @@ interface NotificationStore {
 
 function sortByDate(notifications: Notification[]): Notification[] {
   return [...notifications].sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 }
 
 // ============================================================================
@@ -54,76 +53,76 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
   // Fetch notifications from backend
   fetchNotifications: async () => {
-    set({ isLoading: true, error: null })
+    set({ isLoading: true, error: null });
     try {
-      const response = await notificationsApi.getAll(0, 50)
+      const response = await notificationsApi.getAll(0, 50);
       set({
         notifications: sortByDate(response.notifications),
         unreadCount: response.unreadCount,
         isLoading: false,
-      })
+      });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to fetch notifications'
-      set({ error: message, isLoading: false })
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch notifications";
+      set({ error: message, isLoading: false });
     }
   },
 
   // Add notification (from Socket.IO)
   addNotification: (notification) => {
-    console.log('📥 Adding notification to store:', notification)
-    const state = get()
-    const exists = state.notifications.some((n) => n.id === notification.id)
-    
+    const state = get();
+    const exists = state.notifications.some((n) => n.id === notification.id);
+
     if (exists) {
-      console.log('⚠️  Notification already exists, skipping')
-      return
+      return;
     }
 
-    const newUnreadCount = notification.isRead ? state.unreadCount : state.unreadCount + 1
-    console.log(`🔢 Updating unread count: ${state.unreadCount} -> ${newUnreadCount}`)
-    
-    const updatedNotifications = sortByDate([notification, ...state.notifications])
-    console.log(`📊 Total notifications after add: ${updatedNotifications.length}`)
-    
+    const newUnreadCount = notification.isRead
+      ? state.unreadCount
+      : state.unreadCount + 1;
+
+    const updatedNotifications = sortByDate([
+      notification,
+      ...state.notifications,
+    ]);
+
     set({
       notifications: updatedNotifications,
       unreadCount: newUnreadCount,
       lastUpdate: Date.now(), // Update timestamp to trigger reactive hooks
-    })
-    
-    console.log('✅ Notification added successfully. Store updated:', {
-      totalNotifications: updatedNotifications.length,
-      unreadCount: newUnreadCount
-    })
+    });
   },
 
   // Mark single notification as read
   markAsRead: async (id) => {
-    const state = get()
-    const notification = state.notifications.find((n) => n.id === id)
-    
-    if (!notification || notification.isRead) return
+    const state = get();
+    const notification = state.notifications.find((n) => n.id === id);
+
+    if (!notification || notification.isRead) return;
 
     try {
-      await notificationsApi.markAsRead(id)
+      await notificationsApi.markAsRead(id);
       set({
         notifications: state.notifications.map((n) =>
-          n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
+          n.id === id
+            ? { ...n, isRead: true, readAt: new Date().toISOString() }
+            : n
         ),
         unreadCount: Math.max(0, state.unreadCount - 1),
-      })
+      });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to mark as read'
-      set({ error: message })
+        error instanceof Error ? error.message : "Failed to mark as read";
+      set({ error: message });
     }
   },
 
   // Mark all notifications as read
   markAllAsRead: async () => {
     try {
-      await notificationsApi.markAllAsRead()
+      await notificationsApi.markAllAsRead();
       set((state) => ({
         notifications: state.notifications.map((n) => ({
           ...n,
@@ -131,32 +130,34 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
           readAt: n.readAt || new Date().toISOString(),
         })),
         unreadCount: 0,
-      }))
+      }));
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to mark all as read'
-      set({ error: message })
+        error instanceof Error ? error.message : "Failed to mark all as read";
+      set({ error: message });
     }
   },
 
   // Delete notification
   deleteNotification: async (id) => {
-    const state = get()
-    const notification = state.notifications.find((n) => n.id === id)
-    const wasUnread = notification && !notification.isRead
+    const state = get();
+    const notification = state.notifications.find((n) => n.id === id);
+    const wasUnread = notification && !notification.isRead;
 
     try {
-      await notificationsApi.delete(id)
+      await notificationsApi.delete(id);
       set({
         notifications: state.notifications.filter((n) => n.id !== id),
         unreadCount: wasUnread
           ? Math.max(0, state.unreadCount - 1)
           : state.unreadCount,
-      })
+      });
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to delete notification'
-      set({ error: message })
+        error instanceof Error
+          ? error.message
+          : "Failed to delete notification";
+      set({ error: message });
     }
   },
 
@@ -165,19 +166,19 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     set({
       notifications: [],
       unreadCount: 0,
-    })
+    });
   },
 
   // Set error
   setError: (error) => {
-    set({ error })
+    set({ error });
   },
-}))
+}));
 
 // Debug function for development
-if (typeof window !== 'undefined') {
-  (window as any).notificationStore = useNotificationStore.getState
+if (typeof window !== "undefined") {
+  (window as any).notificationStore = useNotificationStore.getState;
 }
 
 // Type re-export for backward compatibility with dropdown component
-export type { Notification }
+export type { Notification };

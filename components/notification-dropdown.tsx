@@ -20,7 +20,7 @@ import { NotificationCategory } from '@/lib/types/notifications'
 
 export function NotificationDropdown() {
   const router = useRouter()
-  
+
   // Use individual selectors for better reactivity
   const notifications = useNotificationStore((state) => state.notifications)
   const unreadCount = useNotificationStore((state) => state.unreadCount)
@@ -32,11 +32,10 @@ export function NotificationDropdown() {
 
   // Stable callback for handling new notifications
   const handleNewNotification = useCallback((notification: Notification) => {
-    console.log('🎯 NotificationDropdown: Received notification callback', notification)
-    
+
     // Add notification to store
     addNotification(notification)
-    
+
     // Show toast for new notification
     toast({
       title: notification.title,
@@ -50,18 +49,9 @@ export function NotificationDropdown() {
 
   // Fetch notifications on mount
   useEffect(() => {
-    console.log('🔄 NotificationDropdown: Fetching notifications on mount')
     fetchNotifications()
   }, [fetchNotifications])
-  
-  // Log when notifications or unreadCount changes
-  useEffect(() => {
-    console.log('📊 NotificationDropdown: State updated', {
-      totalNotifications: notifications.length,
-      unreadCount,
-      isConnected
-    })
-  }, [notifications.length, unreadCount, isConnected])
+
 
   const getToastVariant = (action: string): 'default' | 'destructive' => {
     return action === 'rejected' ? 'destructive' : 'default'
@@ -92,7 +82,7 @@ export function NotificationDropdown() {
     switch (category) {
       case NotificationCategory.STOCK_PICK_PAYMENT:
         return `/dashboard/payments/stock-picks/${entityId}`
-      
+
       case NotificationCategory.PREMIUM_MEMBERSHIP:
       case NotificationCategory.INTERNATIONAL_STOCK_ACCOUNT:
       case NotificationCategory.GUARANTEED_RETURNS:
@@ -101,16 +91,16 @@ export function NotificationDropdown() {
           return `/dashboard/payments/subscriptions/${entityId}`
         }
         return `/dashboard/services/${entityId}`
-      
+
       case NotificationCategory.TOP_UP:
         // Top-up transfers
         return `/dashboard/payments/transfers/${entityId}`
-      
+
       case NotificationCategory.INVESTMENT_REQUEST:
       case NotificationCategory.INVESTMENT_RETURN:
         // Investment requests
         return `/dashboard/payments/investments/${entityId}`
-      
+
       default:
         return null
     }
@@ -118,7 +108,7 @@ export function NotificationDropdown() {
 
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id)
-    
+
     // Navigate to the appropriate details page
     const path = getNavigationPath(notification)
     if (path) {
@@ -169,9 +159,8 @@ export function NotificationDropdown() {
             {notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
-                className={`flex-col items-start gap-1 p-3 cursor-pointer ${
-                  !notification.isRead ? 'border-l-2 border-primary bg-card' : 'bg-card'
-                }`}
+                className={`flex-col items-start gap-1 p-3 cursor-pointer ${!notification.isRead ? 'border-l-2 border-primary bg-card' : 'bg-card'
+                  }`}
                 onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start gap-2 w-full">

@@ -29,13 +29,25 @@ import { toast } from '@/hooks/use-toast'
 
 interface StockPick {
     id: string
-    symbol: string
-    company_name: string
+    stock_symbol: string
+    company: string | null
+    description: string
     service_type: string
-    current_price: number
-    target_price: number
-    recommendation_date: Date
+    current_price: number | null
+    target_price: number | null
+    sale_price: number
     status: string
+    availability: string | null
+    risk_level: string | null
+    recommendation: string | null
+    expected_return_min_percent: number | null
+    expected_return_max_percent: number | null
+    time_horizon_min_months: number | null
+    time_horizon_max_months: number | null
+    sector: string | null
+    analyst_name: string | null
+    admin_notes: string | null
+    created_at: Date
 }
 
 interface CustomerStockPick {
@@ -312,36 +324,174 @@ export default function StockPickPaymentDetailsPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {pick.stock_pick ? (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Symbol</p>
-                                        <p className="font-medium text-lg">{pick.stock_pick.symbol}</p>
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Symbol</p>
+                                            <p className="font-medium text-lg">{pick.stock_pick.stock_symbol}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Company</p>
+                                            <p className="font-medium">{pick.stock_pick.company || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Service Type</p>
+                                            <Badge variant="outline">
+                                                {pick.stock_pick.service_type?.replace('_', ' ').toUpperCase()}
+                                            </Badge>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Status</p>
+                                            <Badge variant="outline" className={
+                                                pick.stock_pick.status === 'good' ? 'bg-green-100 text-green-800' :
+                                                pick.stock_pick.status === 'bad' ? 'bg-red-100 text-red-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }>
+                                                {pick.stock_pick.status?.toUpperCase()}
+                                            </Badge>
+                                        </div>
+                                        {pick.stock_pick.availability && (
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Availability</p>
+                                                <Badge variant="outline">
+                                                    {pick.stock_pick.availability.toUpperCase()}
+                                                </Badge>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Company</p>
-                                        <p className="font-medium">{pick.stock_pick.company_name}</p>
+
+                                    {/* Price Information */}
+                                    <div className="pt-4 border-t">
+                                        <h4 className="font-semibold mb-3">Price Information</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Current Price</p>
+                                                <p className="font-medium text-lg">
+                                                    {pick.stock_pick.current_price ? formatCurrency(pick.stock_pick.current_price) : 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Target Price</p>
+                                                <p className="font-medium text-lg text-green-600">
+                                                    {pick.stock_pick.target_price ? formatCurrency(pick.stock_pick.target_price) : 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Selected Price</p>
+                                                <p className="font-medium">
+                                                    {pick.selected_price ? formatCurrency(pick.selected_price) : 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-muted-foreground">Sale Price</p>
+                                                <p className="font-medium">
+                                                    {pick.stock_pick.sale_price ? formatCurrency(pick.stock_pick.sale_price) : 'Free'}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Current Price</p>
-                                        <p className="font-medium">{formatCurrency(pick.stock_pick.current_price)}</p>
+
+                                    {/* Analysis Details */}
+                                    <div className="pt-4 border-t">
+                                        <h4 className="font-semibold mb-3">Analysis Details</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {pick.stock_pick.risk_level && (
+                                                <div>
+                                                    <p className="text-sm text-muted-foreground">Risk Level</p>
+                                                    <Badge variant="outline" className={
+                                                        pick.stock_pick.risk_level === 'low' ? 'bg-blue-100 text-blue-800' :
+                                                        pick.stock_pick.risk_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-red-100 text-red-800'
+                                                    }>
+                                                        {pick.stock_pick.risk_level.toUpperCase()}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            {pick.stock_pick.recommendation && (
+                                                <div>
+                                                    <p className="text-sm text-muted-foreground">Recommendation</p>
+                                                    <Badge variant="outline">
+                                                        {pick.stock_pick.recommendation.replace('_', ' ').toUpperCase()}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            {pick.stock_pick.sector && (
+                                                <div>
+                                                    <p className="text-sm text-muted-foreground">Sector</p>
+                                                    <p className="font-medium">{pick.stock_pick.sector}</p>
+                                                </div>
+                                            )}
+                                            {pick.stock_pick.analyst_name && (
+                                                <div>
+                                                    <p className="text-sm text-muted-foreground">Analyst</p>
+                                                    <p className="font-medium">{pick.stock_pick.analyst_name}</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Target Price</p>
-                                        <p className="font-medium text-green-600">
-                                            {formatCurrency(pick.stock_pick.target_price)}
-                                        </p>
+
+                                    {/* Expected Returns */}
+                                    {(pick.stock_pick.expected_return_min_percent !== null || pick.stock_pick.expected_return_max_percent !== null) && (
+                                        <div className="pt-4 border-t">
+                                            <h4 className="font-semibold mb-3">Expected Returns</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {pick.stock_pick.expected_return_min_percent !== null && (
+                                                    <div>
+                                                        <p className="text-sm text-muted-foreground">Minimum Return</p>
+                                                        <p className="font-medium text-green-600">{pick.stock_pick.expected_return_min_percent}%</p>
+                                                    </div>
+                                                )}
+                                                {pick.stock_pick.expected_return_max_percent !== null && (
+                                                    <div>
+                                                        <p className="text-sm text-muted-foreground">Maximum Return</p>
+                                                        <p className="font-medium text-green-600">{pick.stock_pick.expected_return_max_percent}%</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Time Horizon */}
+                                    {(pick.stock_pick.time_horizon_min_months !== null || pick.stock_pick.time_horizon_max_months !== null) && (
+                                        <div className="pt-4 border-t">
+                                            <h4 className="font-semibold mb-3">Time Horizon</h4>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {pick.stock_pick.time_horizon_min_months !== null && (
+                                                    <div>
+                                                        <p className="text-sm text-muted-foreground">Minimum Period</p>
+                                                        <p className="font-medium">{pick.stock_pick.time_horizon_min_months} months</p>
+                                                    </div>
+                                                )}
+                                                {pick.stock_pick.time_horizon_max_months !== null && (
+                                                    <div>
+                                                        <p className="text-sm text-muted-foreground">Maximum Period</p>
+                                                        <p className="font-medium">{pick.stock_pick.time_horizon_max_months} months</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Description */}
+                                    <div className="pt-4 border-t">
+                                        <h4 className="font-semibold mb-2">Description</h4>
+                                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{pick.stock_pick.description}</p>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Service Type</p>
-                                        <p className="font-medium">{pick.stock_pick.service_type}</p>
+
+                                    {/* Admin Notes */}
+                                    {pick.stock_pick.admin_notes && (
+                                        <div className="pt-4 border-t">
+                                            <h4 className="font-semibold mb-2">Admin Notes</h4>
+                                            <p className="text-sm bg-muted p-3 rounded-md whitespace-pre-wrap">{pick.stock_pick.admin_notes}</p>
+                                        </div>
+                                    )}
+
+                                    {/* Created Date */}
+                                    <div className="pt-4 border-t">
+                                        <p className="text-sm text-muted-foreground">Stock Pick Created</p>
+                                        <p className="font-medium">{new Date(pick.stock_pick.created_at).toLocaleString()}</p>
                                     </div>
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Selected Price</p>
-                                        <p className="font-medium">
-                                            {pick.selected_price ? formatCurrency(pick.selected_price) : 'N/A'}
-                                        </p>
-                                    </div>
-                                </div>
+                                </>
                             ) : (
                                 <p className="text-muted-foreground">Stock information not available</p>
                             )}

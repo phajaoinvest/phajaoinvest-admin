@@ -112,6 +112,7 @@ export interface CreateStockPickDto {
   company?: string
   description: string
   status: StockPickStatus
+  availability?: StockPickAvailability
   service_type: CustomerServiceType
   admin_notes?: string
   target_price?: number
@@ -129,6 +130,7 @@ export interface CreateStockPickDto {
   key_points?: string[]
   email_delivery?: boolean
   expires_at?: string
+  is_active?: boolean
 }
 
 export interface UpdateStockPickDto {

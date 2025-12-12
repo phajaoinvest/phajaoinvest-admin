@@ -36,6 +36,27 @@ export const dashboardApi = {
   async getCustomerGrowthChart(year?: number) {
     return apiClient.get('/admin/dashboard/customer-growth-chart', year ? { year } : undefined)
   },
+
+  /**
+   * Get stock picks chart data
+   */
+  async getStockPicksChart(year?: number) {
+    return apiClient.get('/admin/dashboard/stock-picks-chart', year ? { year } : undefined)
+  },
+
+  /**
+   * Get subscriptions chart data
+   */
+  async getSubscriptionsChart(year?: number) {
+    return apiClient.get('/admin/dashboard/subscriptions-chart', year ? { year } : undefined)
+  },
+
+  /**
+   * Get stock transactions chart data
+   */
+  async getStockTransactionsChart(year?: number) {
+    return apiClient.get('/admin/dashboard/stock-transactions-chart', year ? { year } : undefined)
+  },
 }
 
 // ============================================================================

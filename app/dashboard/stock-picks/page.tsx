@@ -42,7 +42,7 @@ import {
   StockPickRecommendation,
   CustomerServiceType,
 } from '@/lib/api'
-import { formatCurrency } from '@/lib/utils'
+import { formatCompactCurrency, formatCurrency } from '@/lib/utils'
 
 export default function StockPicksPage() {
   const { toast } = useToast()
@@ -64,6 +64,7 @@ export default function StockPicksPage() {
     company: '',
     description: '',
     status: StockPickStatus.PENDING,
+    availability: StockPickAvailability.AVAILABLE,
     service_type: CustomerServiceType.PREMIUM_STOCK_PICKS,
     current_price: 0,
     target_price: 0,
@@ -81,6 +82,7 @@ export default function StockPicksPage() {
     key_points: [],
     expires_at: '',
     email_delivery: true,
+    is_active: true,
   })
 
   // Fetch stock picks
@@ -131,6 +133,7 @@ export default function StockPicksPage() {
         company: pick.company || '',
         description: pick.description,
         status: pick.status,
+        availability: pick.availability || 'available',
         service_type: pick.service_type,
         current_price: pick.current_price || 0,
         target_price: pick.target_price || 0,
@@ -148,6 +151,7 @@ export default function StockPicksPage() {
         key_points: pick.key_points || [],
         expires_at: pick.expires_at ? pick.expires_at.split('T')[0] : '',
         email_delivery: pick.email_delivery,
+        is_active: pick.is_active,
       })
     } else {
       setIsEditing(false)
@@ -157,6 +161,7 @@ export default function StockPicksPage() {
         company: '',
         description: '',
         status: StockPickStatus.PENDING,
+        availability: StockPickAvailability.AVAILABLE,
         service_type: CustomerServiceType.PREMIUM_STOCK_PICKS,
         current_price: 0,
         target_price: 0,
@@ -174,6 +179,7 @@ export default function StockPicksPage() {
         key_points: [],
         expires_at: '',
         email_delivery: true,
+        is_active: true,
       })
     }
     setShowModal(true)
@@ -216,7 +222,9 @@ export default function StockPicksPage() {
       if (formData.admin_notes) submitData.admin_notes = formData.admin_notes
       if (formData.key_points && formData.key_points.length > 0) submitData.key_points = formData.key_points
       if (formData.expires_at) submitData.expires_at = new Date(formData.expires_at).toISOString()
+      if (formData.availability) submitData.availability = formData.availability
       submitData.email_delivery = formData.email_delivery
+      submitData.is_active = formData.is_active
 
       if (isEditing && selectedPick) {
         await stockPicksAdminApi.updateStockPick(selectedPick.id, submitData)
@@ -436,9 +444,9 @@ export default function StockPicksPage() {
                             {pick.risk_level || 'N/A'}
                           </Badge>
                         </td>
-                        <td className="p-4 text-right">${formatCurrency(pick.current_price)}</td>
-                        <td className="p-4 text-right">${formatCurrency(pick.target_price)}</td>
-                        <td className="p-4 text-right font-semibold">${formatCurrency(pick.sale_price)}</td>
+                        <td className="p-4 text-right">{formatCurrency(pick.current_price)}</td>
+                        <td className="p-4 text-right">{formatCurrency(pick.target_price)}</td>
+                        <td className="p-4 text-right font-semibold">{formatCurrency(pick.sale_price)}</td>
                         <td className="p-4 text-center">
                           {pick.is_active ? (
                             <Badge className="bg-green-500/10 text-green-600 border-0">Active</Badge>
@@ -572,6 +580,22 @@ export default function StockPicksPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="service_type">Service Type *</Label>
+              <Select
+                value={formData.service_type}
+                onValueChange={(value) => setFormData({ ...formData, service_type: value as CustomerServiceType })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={CustomerServiceType.PREMIUM_STOCK_PICKS}>Premium Stock Picks</SelectItem>
+                  <SelectItem value={CustomerServiceType.INTERNATIONAL_STOCK_ACCOUNT}>International Stock Account</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
@@ -585,6 +609,23 @@ export default function StockPicksPage() {
                   <SelectItem value={StockPickStatus.VERY_GOOD}>Very Good</SelectItem>
                   <SelectItem value={StockPickStatus.EXCELLENT}>Excellent</SelectItem>
                   <SelectItem value={StockPickStatus.PENDING}>Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="availability">Availability</Label>
+              <Select
+                value={formData.availability}
+                onValueChange={(value) => setFormData({ ...formData, availability: value as StockPickAvailability })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={StockPickAvailability.AVAILABLE}>Available</SelectItem>
+                  <SelectItem value={StockPickAvailability.SOLD_OUT}>Sold Out</SelectItem>
+                  <SelectItem value={StockPickAvailability.COMING_SOON}>Coming Soon</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -682,6 +723,101 @@ export default function StockPicksPage() {
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="expected_return_min">Min Expected Return (%)</Label>
+              <Input
+                id="expected_return_min"
+                type="number"
+                step="0.01"
+                value={formData.expected_return_min_percent}
+                onChange={(e) => setFormData({ ...formData, expected_return_min_percent: parseFloat(e.target.value) || 0 })}
+                placeholder="15.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expected_return_max">Max Expected Return (%)</Label>
+              <Input
+                id="expected_return_max"
+                type="number"
+                step="0.01"
+                value={formData.expected_return_max_percent}
+                onChange={(e) => setFormData({ ...formData, expected_return_max_percent: parseFloat(e.target.value) || 0 })}
+                placeholder="35.00"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="time_horizon_min">Min Time Horizon (months)</Label>
+              <Input
+                id="time_horizon_min"
+                type="number"
+                value={formData.time_horizon_min_months}
+                onChange={(e) => setFormData({ ...formData, time_horizon_min_months: parseInt(e.target.value) || 1 })}
+                placeholder="1"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="time_horizon_max">Max Time Horizon (months)</Label>
+              <Input
+                id="time_horizon_max"
+                type="number"
+                value={formData.time_horizon_max_months}
+                onChange={(e) => setFormData({ ...formData, time_horizon_max_months: parseInt(e.target.value) || 12 })}
+                placeholder="12"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tier_label">Tier Label</Label>
+              <Select
+                value={formData.tier_label}
+                onValueChange={(value) => setFormData({ ...formData, tier_label: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="budget">Budget</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="elite">Elite</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expires_at">Expires At</Label>
+              <Input
+                id="expires_at"
+                type="date"
+                value={formData.expires_at}
+                onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2 flex items-center gap-2">
+              <input
+                id="email_delivery"
+                type="checkbox"
+                checked={formData.email_delivery}
+                onChange={(e) => setFormData({ ...formData, email_delivery: e.target.checked })}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="email_delivery" className="cursor-pointer">Email Delivery Enabled</Label>
+            </div>
+
+            <div className="space-y-2 flex items-center gap-2">
+              <input
+                id="is_active"
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4"
+              />
+              <Label htmlFor="is_active" className="cursor-pointer">Active</Label>
+            </div>
+
             <div className="space-y-2 col-span-2">
               <Label htmlFor="admin_notes">Admin Notes (Internal)</Label>
               <Textarea
@@ -729,60 +865,238 @@ export default function StockPicksPage() {
 
       {/* View Details Modal */}
       <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Stock Pick Details</DialogTitle>
+            <DialogTitle className="text-2xl">Stock Pick Details</DialogTitle>
           </DialogHeader>
           {selectedPick && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Symbol</Label>
-                  <p className="font-semibold text-lg">{selectedPick.stock_symbol}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Company</Label>
-                  <p className="font-semibold">{selectedPick.company || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Status</Label>
-                  <Badge className={`${getStatusColor(selectedPick.status)} mt-1`}>
-                    {selectedPick.status}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Risk Level</Label>
-                  <Badge className={`${getRiskColor(selectedPick.risk_level)} mt-1`}>
-                    {selectedPick.risk_level || 'N/A'}
-                  </Badge>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Current Price</Label>
-                  <p className="font-semibold">${selectedPick.current_price?.toFixed(2) || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Target Price</Label>
-                  <p className="font-semibold">${selectedPick.target_price?.toFixed(2) || '-'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Sale Price</Label>
-                  <p className="font-semibold text-lg text-primary">${selectedPick.sale_price.toFixed(2)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Sector</Label>
-                  <p className="font-semibold">{selectedPick.sector || '-'}</p>
-                </div>
-              </div>
+            <div className="space-y-6">
+              {/* Basic Information */}
               <div>
-                <Label className="text-muted-foreground">Description</Label>
-                <p className="mt-1">{selectedPick.description}</p>
+                <h3 className="text-lg font-semibold mb-3 border-b pb-2">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Stock Symbol</Label>
+                    <p className="font-bold text-xl">{selectedPick.stock_symbol}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Company Name</Label>
+                    <p className="font-semibold">{selectedPick.company || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Service Type</Label>
+                    <Badge variant="outline" className="mt-1">
+                      {selectedPick.service_type?.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Sector</Label>
+                    <p className="font-semibold">{selectedPick.sector || '-'}</p>
+                  </div>
+                </div>
               </div>
-              {selectedPick.admin_notes && (
+
+              {/* Status Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 border-b pb-2">Status & Availability</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Status</Label>
+                    <div className="mt-1">
+                      <Badge className={`${getStatusColor(selectedPick.status)}`}>
+                        {selectedPick.status?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Availability</Label>
+                    <div className="mt-1">
+                      <Badge variant="outline">
+                        {selectedPick.availability?.replace('_', ' ').toUpperCase() || 'N/A'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Active Status</Label>
+                    <div className="mt-1">
+                      {selectedPick.is_active ? (
+                        <Badge className="bg-green-500/10 text-green-600">Active</Badge>
+                      ) : (
+                        <Badge className="bg-gray-500/10 text-gray-500">Inactive</Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 border-b pb-2">Price Information</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Current Price</Label>
+                    <p className="font-semibold text-lg">${formatCompactCurrency(selectedPick.current_price) || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Target Price</Label>
+                    <p className="font-semibold text-lg text-green-600">${formatCompactCurrency(selectedPick.target_price) || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Sale Price</Label>
+                    <p className="font-bold text-xl text-primary">${formatCompactCurrency(selectedPick.sale_price)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Analysis Information */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 border-b pb-2">Analysis & Recommendation</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Risk Level</Label>
+                    <div className="mt-1">
+                      <Badge className={`${getRiskColor(selectedPick.risk_level)}`}>
+                        {selectedPick.risk_level?.toUpperCase() || 'N/A'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Recommendation</Label>
+                    <div className="mt-1">
+                      <Badge variant="outline">
+                        {selectedPick.recommendation?.replace('_', ' ').toUpperCase() || 'N/A'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Tier Label</Label>
+                    <div className="mt-1">
+                      <Badge variant="outline">
+                        {selectedPick.tier_label?.toUpperCase() || 'N/A'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expected Returns */}
+              {(selectedPick.expected_return_min_percent !== null || selectedPick.expected_return_max_percent !== null) && (
                 <div>
-                  <Label className="text-muted-foreground">Admin Notes</Label>
-                  <p className="mt-1 text-sm">{selectedPick.admin_notes}</p>
+                  <h3 className="text-lg font-semibold mb-3 border-b pb-2">Expected Returns</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Minimum Expected Return</Label>
+                      <p className="font-semibold text-green-600">
+                        {selectedPick.expected_return_min_percent !== null ? `${selectedPick.expected_return_min_percent}%` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Maximum Expected Return</Label>
+                      <p className="font-semibold text-green-600">
+                        {selectedPick.expected_return_max_percent !== null ? `${selectedPick.expected_return_max_percent}%` : '-'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
+
+              {/* Time Horizon */}
+              {(selectedPick.time_horizon_min_months !== null || selectedPick.time_horizon_max_months !== null) && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 border-b pb-2">Investment Horizon</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Minimum Period</Label>
+                      <p className="font-semibold">
+                        {selectedPick.time_horizon_min_months !== null ? `${selectedPick.time_horizon_min_months} months` : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Maximum Period</Label>
+                      <p className="font-semibold">
+                        {selectedPick.time_horizon_max_months !== null ? `${selectedPick.time_horizon_max_months} months` : '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Analyst Information */}
+              {selectedPick.analyst_name && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 border-b pb-2">Analyst Information</h3>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Analyst Name</Label>
+                    <p className="font-semibold">{selectedPick.analyst_name}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 border-b pb-2">Description</h3>
+                <p className="text-sm whitespace-pre-wrap bg-muted/30 p-3 rounded-md">{selectedPick.description}</p>
+              </div>
+
+              {/* Key Points */}
+              {selectedPick.key_points && selectedPick.key_points.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 border-b pb-2">Key Investment Points</h3>
+                  <ul className="list-disc list-inside space-y-1">
+                    {selectedPick.key_points.map((point, index) => (
+                      <li key={index} className="text-sm">{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Admin Notes */}
+              {selectedPick.admin_notes && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 border-b pb-2">Admin Notes (Internal)</h3>
+                  <p className="text-sm bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md whitespace-pre-wrap border border-yellow-200 dark:border-yellow-800">
+                    {selectedPick.admin_notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Delivery & Expiration */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 border-b pb-2">Delivery & Expiration</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Email Delivery</Label>
+                    <div className="mt-1">
+                      {selectedPick.email_delivery ? (
+                        <Badge className="bg-green-500/10 text-green-600">Enabled</Badge>
+                      ) : (
+                        <Badge className="bg-gray-500/10 text-gray-500">Disabled</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Expires At</Label>
+                    <p className="font-semibold">
+                      {selectedPick.expires_at ? new Date(selectedPick.expires_at).toLocaleDateString() : 'No expiration'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 border-b pb-2">System Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Created At</Label>
+                    <p className="font-mono">{new Date(selectedPick.created_at).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Last Updated</Label>
+                    <p className="font-mono">{new Date(selectedPick.updated_at).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>

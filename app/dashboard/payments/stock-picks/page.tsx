@@ -41,11 +41,11 @@ import { formatCurrency, formatNumber } from '@/lib/utils'
 
 interface StockPick {
     id: string
-    symbol: string
-    company_name: string
+    stock_symbol: string
+    company: string | null
     service_type: string
-    current_price: number
-    target_price: number
+    current_price: number | null
+    target_price: number | null
     recommendation_date: Date
     status: string
 }
@@ -217,8 +217,8 @@ export default function StockPickPaymentsPage() {
             pick.customer?.last_name?.toLowerCase().includes(searchLower) ||
             pick.customer?.email?.toLowerCase().includes(searchLower) ||
             pick.stock_symbol?.toLowerCase().includes(searchLower) ||
-            pick.stock_pick?.symbol?.toLowerCase().includes(searchLower) ||
-            pick.stock_pick?.company_name?.toLowerCase().includes(searchLower)
+            pick.stock_pick?.stock_symbol?.toLowerCase().includes(searchLower) ||
+            pick.stock_pick?.company?.toLowerCase().includes(searchLower)
         )
     })
 
@@ -383,9 +383,9 @@ export default function StockPickPaymentsPage() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div>
-                                                        <div className="font-medium">{pick.stock_symbol || pick.stock_pick?.symbol || 'N/A'}</div>
+                                                        <div className="font-medium">{pick.stock_symbol || pick.stock_pick?.stock_symbol || 'N/A'}</div>
                                                         <div className="text-sm text-muted-foreground">
-                                                            {pick.stock_pick?.company_name || '-'}
+                                                            {pick.stock_pick?.company || '-'}
                                                         </div>
                                                     </div>
                                                 </TableCell>

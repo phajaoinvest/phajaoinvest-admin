@@ -1,11 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { Users, TrendingUp, CreditCard, Zap } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Users, TrendingUp, CreditCard, Zap, RefreshCw, DollarSign, Package, Activity } from 'lucide-react'
 import { StatCard } from '@/components/stat-card'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useDashboardStore } from '@/lib/dashboard-store'
+import { Button } from '@/components/ui/button'
+import { dashboardApi } from '@/lib/api/dashboard'
+import type {
+  AdminDashboardStats,
+  AdminRevenueChartData,
+  AdminStockPicksChartData,
+  AdminSubscriptionsChartData,
+  AdminStockTransactionsChartData,
+} from '@/lib/types/dashboard'
 import { Bar } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -20,46 +28,131 @@ import {
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
-type ChartFilter = 'week' | 'month' | 'year'
-
 export default function DashboardPage() {
-  const { customers, investments, stockPicks, payments, subscriptions } = useDashboardStore()
+  const currentYear = new Date().getFullYear()
+  
+  // State for stats
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(true)
+  
+  // State for charts
+  const [investmentChartData, setInvestmentChartData] = useState<AdminRevenueChartData | null>(null)
+  const [stockPickChartData, setStockPickChartData] = useState<AdminStockPicksChartData | null>(null)
+  const [subscriptionChartData, setSubscriptionChartData] = useState<AdminSubscriptionsChartData | null>(null)
+  const [stockTransactionChartData, setStockTransactionChartData] = useState<AdminStockTransactionsChartData | null>(null)
+  
+  // Year filters for each chart
+  const [investmentYear, setInvestmentYear] = useState(currentYear)
+  const [stockPickYear, setStockPickYear] = useState(currentYear)
+  const [subscriptionYear, setSubscriptionYear] = useState(currentYear)
+  const [stockTransactionYear, setStockTransactionYear] = useState(currentYear)
+  
+  // Loading states
+  const [chartsLoading, setChartsLoading] = useState({
+    investment: true,
+    stockPick: true,
+    subscription: true,
+    stockTransaction: true,
+  })
 
-  const [investmentFilter, setInvestmentFilter] = useState<ChartFilter>('year')
-  const [stockPickFilter, setStockPickFilter] = useState<ChartFilter>('year')
-  const [subscriptionFilter, setSubscriptionFilter] = useState<ChartFilter>('year')
-  const [stockBuySellFilter, setStockBuySellFilter] = useState<ChartFilter>('year')
-
-  const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0)
-  const activeCustomers = customers.filter((c) => c.status === 'active').length
-  const activeInvestments = investments.filter((i) => i.status === 'active').length
-  const totalInvestment = investments.reduce((sum, i) => sum + i.amount, 0)
-
-  const getLabels = (filter: ChartFilter): string[] => {
-    switch (filter) {
-      case 'week':
-        return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-      case 'month':
-        return ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-      case 'year':
-        return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  // Fetch dashboard stats
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true)
+    try {
+      const response = await dashboardApi.getStats()
+      setStats(response.data as AdminDashboardStats)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to fetch dashboard stats:', errorMessage, error)
+    } finally {
+      setStatsLoading(false)
     }
-  }
+  }, [])
 
-  const getDataLength = (filter: ChartFilter): number => {
-    switch (filter) {
-      case 'week':
-        return 7
-      case 'month':
-        return 4
-      case 'year':
-        return 12
+  // Fetch investment/revenue chart
+  const fetchInvestmentChart = useCallback(async (year: number) => {
+    setChartsLoading((prev) => ({ ...prev, investment: true }))
+    try {
+      const response = await dashboardApi.getRevenueChart(year)
+      setInvestmentChartData(response.data as AdminRevenueChartData)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to fetch investment chart:', errorMessage, error)
+    } finally {
+      setChartsLoading((prev) => ({ ...prev, investment: false }))
     }
-  }
+  }, [])
 
-  const generateRandomData = (length: number, min: number, max: number): number[] => {
-    return Array.from({ length }, () => Math.floor(Math.random() * (max - min + 1)) + min)
-  }
+  // Fetch stock picks chart
+  const fetchStockPickChart = useCallback(async (year: number) => {
+    setChartsLoading((prev) => ({ ...prev, stockPick: true }))
+    try {
+      const response = await dashboardApi.getStockPicksChart(year)
+      setStockPickChartData(response.data as AdminStockPicksChartData)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to fetch stock pick chart:', errorMessage, error)
+    } finally {
+      setChartsLoading((prev) => ({ ...prev, stockPick: false }))
+    }
+  }, [])
+
+  // Fetch subscription chart
+  const fetchSubscriptionChart = useCallback(async (year: number) => {
+    setChartsLoading((prev) => ({ ...prev, subscription: true }))
+    try {
+      const response = await dashboardApi.getSubscriptionsChart(year)
+      setSubscriptionChartData(response.data as AdminSubscriptionsChartData)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to fetch subscription chart:', errorMessage, error)
+    } finally {
+      setChartsLoading((prev) => ({ ...prev, subscription: false }))
+    }
+  }, [])
+
+  // Fetch stock transactions chart
+  const fetchStockTransactionChart = useCallback(async (year: number) => {
+    setChartsLoading((prev) => ({ ...prev, stockTransaction: true }))
+    try {
+      const response = await dashboardApi.getStockTransactionsChart(year)
+      setStockTransactionChartData(response.data as AdminStockTransactionsChartData)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Failed to fetch stock transaction chart:', errorMessage, error)
+    } finally {
+      setChartsLoading((prev) => ({ ...prev, stockTransaction: false }))
+    }
+  }, [])
+
+  // Initial fetch
+  useEffect(() => {
+    fetchStats()
+    fetchInvestmentChart(investmentYear)
+    fetchStockPickChart(stockPickYear)
+    fetchSubscriptionChart(subscriptionYear)
+    fetchStockTransactionChart(stockTransactionYear)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch when year changes
+  useEffect(() => {
+    fetchInvestmentChart(investmentYear)
+  }, [investmentYear, fetchInvestmentChart])
+
+  useEffect(() => {
+    fetchStockPickChart(stockPickYear)
+  }, [stockPickYear, fetchStockPickChart])
+
+  useEffect(() => {
+    fetchSubscriptionChart(subscriptionYear)
+  }, [subscriptionYear, fetchSubscriptionChart])
+
+  useEffect(() => {
+    fetchStockTransactionChart(stockTransactionYear)
+  }, [stockTransactionYear, fetchStockTransactionChart])
+
+  // Generate year options
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
   const chartOptions = {
     responsive: true,
@@ -102,12 +195,12 @@ export default function DashboardPage() {
   }
 
   const investmentHistoryData = {
-    labels: getLabels(investmentFilter),
+    labels: investmentChartData?.chartData.map((d) => d.month) || [],
     datasets: [
       {
-        label: 'Investment Amount ($K)',
-        data: generateRandomData(getDataLength(investmentFilter), 40, 75),
-        backgroundColor: 'rgba(134, 239, 172, 0.7)', // Softer green
+        label: 'Investment Amount ($)',
+        data: investmentChartData?.chartData.map((d) => d.value) || [],
+        backgroundColor: 'rgba(134, 239, 172, 0.7)',
         borderColor: 'rgba(134, 239, 172, 1)',
         borderWidth: 2,
       },
@@ -115,12 +208,12 @@ export default function DashboardPage() {
   }
 
   const stockPickHistoryData = {
-    labels: getLabels(stockPickFilter),
+    labels: stockPickChartData?.chartData.map((d) => d.month) || [],
     datasets: [
       {
         label: 'Stock Picks Added',
-        data: generateRandomData(getDataLength(stockPickFilter), 10, 30),
-        backgroundColor: 'rgba(147, 197, 253, 0.7)', // Softer blue
+        data: stockPickChartData?.chartData.map((d) => d.value) || [],
+        backgroundColor: 'rgba(147, 197, 253, 0.7)',
         borderColor: 'rgba(147, 197, 253, 1)',
         borderWidth: 2,
       },
@@ -128,12 +221,12 @@ export default function DashboardPage() {
   }
 
   const subscriptionHistoryData = {
-    labels: getLabels(subscriptionFilter),
+    labels: subscriptionChartData?.chartData.map((d) => d.month) || [],
     datasets: [
       {
         label: 'New Subscriptions',
-        data: generateRandomData(getDataLength(subscriptionFilter), 25, 50),
-        backgroundColor: 'rgba(196, 181, 253, 0.7)', // Softer purple
+        data: subscriptionChartData?.chartData.map((d) => d.value) || [],
+        backgroundColor: 'rgba(196, 181, 253, 0.7)',
         borderColor: 'rgba(196, 181, 253, 1)',
         borderWidth: 2,
       },
@@ -141,12 +234,12 @@ export default function DashboardPage() {
   }
 
   const stockBuySellHistoryData = {
-    labels: getLabels(stockBuySellFilter),
+    labels: stockTransactionChartData?.chartData.map((d) => d.month) || [],
     datasets: [
       {
         label: 'Stock Transactions',
-        data: generateRandomData(getDataLength(stockBuySellFilter), 35, 85),
-        backgroundColor: 'rgba(253, 186, 116, 0.7)', // Softer orange
+        data: stockTransactionChartData?.chartData.map((d) => d.value) || [],
+        backgroundColor: 'rgba(253, 186, 116, 0.7)',
         borderColor: 'rgba(253, 186, 116, 1)',
         borderWidth: 2,
       },
@@ -155,55 +248,113 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      {/* Header with Refresh Button */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            fetchStats()
+            fetchInvestmentChart(investmentYear)
+            fetchStockPickChart(stockPickYear)
+            fetchSubscriptionChart(subscriptionYear)
+            fetchStockTransactionChart(stockTransactionYear)
+          }}
+          disabled={statsLoading}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${statsLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+
+      {/* Stat Cards - Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
           icon={<Users className="w-4 h-4" />}
           label="Active Customers"
-          value={activeCustomers}
-          change="+12% this month"
+          value={statsLoading ? '...' : stats?.activeCustomers ?? 0}
+          change={`+${stats?.newCustomersThisMonth ?? 0} this month`}
           changeType="positive"
         />
         <StatCard
           icon={<TrendingUp className="w-4 h-4" />}
           label="Total Investments"
-          value={`$${(totalInvestment / 1000).toFixed(1)}K`}
-          change="+23% this month"
+          value={statsLoading ? '...' : stats?.displayTotalInvestments ?? '$0'}
+          change={`${stats?.pendingInvestmentRequests ?? 0} pending`}
           changeType="positive"
         />
         <StatCard
           icon={<Zap className="w-4 h-4" />}
-          label="Stock Picks"
-          value={stockPicks.length}
-          change="2 new this week"
+          label="Total Customers"
+          value={statsLoading ? '...' : stats?.totalCustomers ?? 0}
+          change={`${stats?.verifiedCustomers ?? 0} verified`}
           changeType="positive"
         />
         <StatCard
           icon={<CreditCard className="w-4 h-4" />}
           label="Total Revenue"
-          value={`$${totalRevenue.toLocaleString()}`}
-          change="+18% this month"
+          value={statsLoading ? '...' : stats?.displayTotalRevenue ?? '$0'}
+          change={`${stats?.pendingKycRequests ?? 0} pending KYC`}
           changeType="positive"
         />
       </div>
 
+      {/* Stat Cards - Row 2: Approved Totals */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <StatCard
+          icon={<DollarSign className="w-4 h-4" />}
+          label="Stock Pick Payments"
+          value={statsLoading ? '...' : stats?.displayTotalApprovedStockPickPayments ?? '$0'}
+          change="Approved only"
+          changeType="positive"
+        />
+        <StatCard
+          icon={<Package className="w-4 h-4" />}
+          label="Membership Subscriptions"
+          value={statsLoading ? '...' : stats?.displayTotalApprovedMembershipSubscriptions ?? '$0'}
+          change="Active only"
+          changeType="positive"
+        />
+        <StatCard
+          icon={<Activity className="w-4 h-4" />}
+          label="Stock Transactions"
+          value={statsLoading ? '...' : stats?.totalApprovedStockTransactions ?? 0}
+          change="Total transactions"
+          changeType="positive"
+        />
+      </div>
+
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Investment History Chart */}
         <Card className="border border-border/50 shadow-md bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Investment History</CardTitle>
-            <Select value={investmentFilter} onValueChange={(value) => setInvestmentFilter(value as ChartFilter)}>
+            <CardTitle className="text-lg font-semibold">
+              Investment History {investmentChartData?.displayTotal ? `(${investmentChartData.displayTotal})` : ''}
+            </CardTitle>
+            <Select value={investmentYear.toString()} onValueChange={(value) => setInvestmentYear(Number(value))}>
               <SelectTrigger className="w-[110px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week">Week</SelectItem>
-                <SelectItem value="month">Month</SelectItem>
-                <SelectItem value="year">Year</SelectItem>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <Bar data={investmentHistoryData} options={chartOptions} />
+              {chartsLoading.investment ? (
+                <div className="flex items-center justify-center h-full">
+                  <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <Bar data={investmentHistoryData} options={chartOptions} />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -211,21 +362,31 @@ export default function DashboardPage() {
         {/* Stock Pick History Chart */}
         <Card className="border border-border/50 shadow-md bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Stock Pick History</CardTitle>
-            <Select value={stockPickFilter} onValueChange={(value) => setStockPickFilter(value as ChartFilter)}>
+            <CardTitle className="text-lg font-semibold">
+              Stock Pick History {stockPickChartData?.totalStockPicks ? `(${stockPickChartData.totalStockPicks} total)` : ''}
+            </CardTitle>
+            <Select value={stockPickYear.toString()} onValueChange={(value) => setStockPickYear(Number(value))}>
               <SelectTrigger className="w-[110px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week">Week</SelectItem>
-                <SelectItem value="month">Month</SelectItem>
-                <SelectItem value="year">Year</SelectItem>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <Bar data={stockPickHistoryData} options={chartOptions} />
+              {chartsLoading.stockPick ? (
+                <div className="flex items-center justify-center h-full">
+                  <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <Bar data={stockPickHistoryData} options={chartOptions} />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -233,21 +394,31 @@ export default function DashboardPage() {
         {/* Subscription History Chart */}
         <Card className="border border-border/50 shadow-md bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Subscription History</CardTitle>
-            <Select value={subscriptionFilter} onValueChange={(value) => setSubscriptionFilter(value as ChartFilter)}>
+            <CardTitle className="text-lg font-semibold">
+              Subscription History {subscriptionChartData?.totalSubscriptions ? `(${subscriptionChartData.totalSubscriptions} total)` : ''}
+            </CardTitle>
+            <Select value={subscriptionYear.toString()} onValueChange={(value) => setSubscriptionYear(Number(value))}>
               <SelectTrigger className="w-[110px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week">Week</SelectItem>
-                <SelectItem value="month">Month</SelectItem>
-                <SelectItem value="year">Year</SelectItem>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <Bar data={subscriptionHistoryData} options={chartOptions} />
+              {chartsLoading.subscription ? (
+                <div className="flex items-center justify-center h-full">
+                  <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <Bar data={subscriptionHistoryData} options={chartOptions} />
+              )}
             </div>
           </CardContent>
         </Card>
@@ -255,21 +426,31 @@ export default function DashboardPage() {
         {/* Stock Buy & Sell History Chart */}
         <Card className="border border-border/50 shadow-md bg-card">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-semibold">Stock Buy & Sell History</CardTitle>
-            <Select value={stockBuySellFilter} onValueChange={(value) => setStockBuySellFilter(value as ChartFilter)}>
+            <CardTitle className="text-lg font-semibold">
+              Stock Transactions {stockTransactionChartData?.totalTransactions ? `(${stockTransactionChartData.totalTransactions} total)` : ''}
+            </CardTitle>
+            <Select value={stockTransactionYear.toString()} onValueChange={(value) => setStockTransactionYear(Number(value))}>
               <SelectTrigger className="w-[110px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="week">Week</SelectItem>
-                <SelectItem value="month">Month</SelectItem>
-                <SelectItem value="year">Year</SelectItem>
+                {yearOptions.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <Bar data={stockBuySellHistoryData} options={chartOptions} />
+              {chartsLoading.stockTransaction ? (
+                <div className="flex items-center justify-center h-full">
+                  <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <Bar data={stockBuySellHistoryData} options={chartOptions} />
+              )}
             </div>
           </CardContent>
         </Card>

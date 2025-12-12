@@ -86,7 +86,6 @@ export default function SubscriptionsPage() {
     setIsLoading(true)
     setError(null)
     try {
-      console.log('Fetching subscriptions...', { page: page, limit: limit, status: statusFilter, search: searchTerm })
       const response = await subscriptionsApi.getAll({
         page: page,
         limit: limit,
@@ -94,14 +93,11 @@ export default function SubscriptionsPage() {
         search: searchTerm || undefined,
       })
 
-      console.log('API Response:', response)
-
       if (response.is_error) {
         throw new Error(response.message || 'Failed to fetch subscriptions')
       }
 
       const data = response.data || []
-      console.log('Subscriptions data:', data)
 
       setSubscriptions(data)
       setTotalPages(response.totalPages || 1)
