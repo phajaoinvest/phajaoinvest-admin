@@ -55,3 +55,6 @@ export { dashboardApi, auditLogsApi, locationApi, investTypesApi, boundsApi } fr
 
 // Service Admin (Approvals)
 export { servicesAdminApi, type PendingServiceApplication, type ServiceStats, type AllServicesStats } from './services'
+
+// Notifications
+export { notificationsApi } from './notifications'
