@@ -17,6 +17,7 @@ interface NotificationStore {
   unreadCount: number
   isLoading: boolean
   error: string | null
+  lastUpdate: number // Timestamp of last update for reactive triggers
 
   // Actions
   fetchNotifications: () => Promise<void>
@@ -49,6 +50,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
   unreadCount: 0,
   isLoading: false,
   error: null,
+  lastUpdate: Date.now(),
 
   // Fetch notifications from backend
   fetchNotifications: async () => {
@@ -87,6 +89,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     set({
       notifications: updatedNotifications,
       unreadCount: newUnreadCount,
+      lastUpdate: Date.now(), // Update timestamp to trigger reactive hooks
     })
     
     console.log('✅ Notification added successfully. Store updated:', {

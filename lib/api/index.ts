@@ -58,3 +58,6 @@ export { servicesAdminApi, type PendingServiceApplication, type ServiceStats, ty
 
 // Notifications
 export { notificationsApi } from './notifications'
+
+// Pending Counts
+export { pendingCountsApi, type PendingCounts } from './pending-counts'
