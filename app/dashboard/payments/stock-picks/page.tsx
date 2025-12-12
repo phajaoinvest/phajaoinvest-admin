@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,13 +23,6 @@ import {
     ChevronRight
 } from 'lucide-react'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog'
-import {
     Table,
     TableBody,
     TableCell,
@@ -43,7 +37,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 
 interface StockPick {
@@ -102,6 +95,7 @@ interface StockPickStats {
 }
 
 export default function StockPickPaymentsPage() {
+    const router = useRouter()
     const [picks, setPicks] = useState<CustomerStockPick[]>([])
     const [stats, setStats] = useState<StockPickStats | null>(null)
     const [isLoading, setIsLoading] = useState(false)
@@ -116,12 +110,6 @@ export default function StockPickPaymentsPage() {
         limit: 10,
         totalPages: 0,
     })
-
-    // Modal state
-    const [viewModalOpen, setViewModalOpen] = useState(false)
-    const [selectedPick, setSelectedPick] = useState<CustomerStockPick | null>(null)
-    const [adminResponse, setAdminResponse] = useState('')
-    const [isProcessing, setIsProcessing] = useState(false)
 
     const fetchStats = useCallback(async () => {
         try {
@@ -204,71 +192,7 @@ export default function StockPickPaymentsPage() {
     }, [fetchPicks])
 
     const handleViewDetails = (pick: CustomerStockPick) => {
-        setSelectedPick(pick)
-        setAdminResponse(pick.admin_response || '')
-        setViewModalOpen(true)
-    }
-
-    const handleApprove = async () => {
-        if (!selectedPick) return
-        setIsProcessing(true)
-        try {
-            const response = await fetch(
-                `${env.apiUrl}/admin/stock-picks/customer-picks/${selectedPick.id}/approve`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${tokenManager.getAccessToken()}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        admin_response: adminResponse,
-                    }),
-                }
-            )
-
-            if (!response.ok) throw new Error('Failed to approve payment')
-
-            await fetchPicks()
-            setViewModalOpen(false)
-            setSelectedPick(null)
-            setAdminResponse('')
-        } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to approve')
-        } finally {
-            setIsProcessing(false)
-        }
-    }
-
-    const handleReject = async () => {
-        if (!selectedPick) return
-        setIsProcessing(true)
-        try {
-            const response = await fetch(
-                `${env.apiUrl}/admin/stock-picks/customer-picks/${selectedPick.id}/reject`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${tokenManager.getAccessToken()}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        admin_response: adminResponse || 'Payment rejected by admin',
-                    }),
-                }
-            )
-
-            if (!response.ok) throw new Error('Failed to reject payment')
-
-            await fetchPicks()
-            setViewModalOpen(false)
-            setSelectedPick(null)
-            setAdminResponse('')
-        } catch (err) {
-            alert(err instanceof Error ? err.message : 'Failed to reject')
-        } finally {
-            setIsProcessing(false)
-        }
+        router.push(`/dashboard/payments/stock-picks/${pick.id}`)
     }
 
     const getStatusBadge = (status: string) => {
@@ -527,193 +451,6 @@ export default function StockPickPaymentsPage() {
                     )}
                 </CardContent>
             </Card>
-
-            {/* View Details Modal */}
-            <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Stock Pick Payment Details</DialogTitle>
-                        <DialogDescription>
-                            Review and approve or reject the customer's stock pick payment
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {selectedPick && (
-                        <div className="space-y-6">
-                            {/* Customer Info */}
-                            <div className="space-y-2">
-                                <h3 className="font-semibold">Customer Information</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-muted-foreground">Name:</span>{' '}
-                                        <span className="font-medium">
-                                            {selectedPick.customer_name || (selectedPick.customer ? `${selectedPick.customer.first_name} ${selectedPick.customer.last_name}` : 'N/A')}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Email:</span>{' '}
-                                        <span className="font-medium">{selectedPick.customer_email || selectedPick.customer?.email || 'N/A'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Stock Info */}
-                            <div className="space-y-2">
-                                <h3 className="font-semibold">Stock Information</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-muted-foreground">Symbol:</span>{' '}
-                                        <span className="font-medium">{selectedPick.stock_symbol || selectedPick.stock_pick?.symbol || 'N/A'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Company:</span>{' '}
-                                        <span className="font-medium">{selectedPick.stock_pick?.company_name || '-'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Current Price:</span>{' '}
-                                        <span className="font-medium">
-                                            {selectedPick.stock_pick?.current_price ? formatCurrency(selectedPick.stock_pick.current_price) : '-'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Target Price:</span>{' '}
-                                        <span className="font-medium">
-                                            {selectedPick.stock_pick?.target_price ? formatCurrency(selectedPick.stock_pick.target_price) : '-'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Selected Price:</span>{' '}
-                                        <span className="font-medium">
-                                            {selectedPick.selected_price ? formatCurrency(selectedPick.selected_price) : '-'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Service Type:</span>{' '}
-                                        <Badge variant="outline">
-                                            {selectedPick.stock_pick?.service_type?.replace('_', ' ').toUpperCase() || 'STOCK PICK'}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Payment Info */}
-                            <div className="space-y-2">
-                                <h3 className="font-semibold">Payment Information</h3>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-muted-foreground">Amount:</span>{' '}
-                                        <span className="font-medium">
-                                            {selectedPick.payment_amount ? formatCurrency(selectedPick.payment_amount) : '-'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Reference:</span>{' '}
-                                        <span className="font-medium">{selectedPick.payment_reference || '-'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Submitted:</span>{' '}
-                                        <span className="font-medium">
-                                            {selectedPick.payment_submitted_at
-                                                ? new Date(selectedPick.payment_submitted_at).toLocaleString()
-                                                : '-'}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span className="text-muted-foreground">Status:</span>{' '}
-                                        {getStatusBadge(selectedPick.status)}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Payment Slip */}
-                            {selectedPick.payment_slip_url && (
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Payment Slip</h3>
-                                    <img
-                                        src={selectedPick.payment_slip_url}
-                                        alt="Payment slip"
-                                        className="w-full max-h-96 object-contain rounded-md border"
-                                    />
-                                    <a
-                                        href={selectedPick.payment_slip_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-blue-600 hover:underline"
-                                    >
-                                        View full size
-                                    </a>
-                                </div>
-                            )}
-
-                            {/* Customer Notes */}
-                            {selectedPick.customer_notes && (
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Customer Notes</h3>
-                                    <p className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
-                                        {selectedPick.customer_notes}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Admin Response */}
-                            {selectedPick.status === 'payment_submitted' && (
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold">Admin Response</h3>
-                                    <Textarea
-                                        value={adminResponse}
-                                        onChange={(e) => setAdminResponse(e.target.value)}
-                                        placeholder="Enter response message (optional)"
-                                        rows={3}
-                                    />
-                                </div>
-                            )}
-
-                            {/* Actions */}
-                            {selectedPick.status === 'payment_submitted' && (
-                                <div className="flex justify-end gap-3">
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => setViewModalOpen(false)}
-                                        disabled={isProcessing}
-                                    >
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        variant="destructive"
-                                        onClick={handleReject}
-                                        disabled={isProcessing}
-                                    >
-                                        {isProcessing ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                Rejecting...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <X className="w-4 h-4 mr-2" />
-                                                Reject
-                                            </>
-                                        )}
-                                    </Button>
-                                    <Button onClick={handleApprove} disabled={isProcessing}>
-                                        {isProcessing ? (
-                                            <>
-                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                Approving...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Check className="w-4 h-4 mr-2" />
-                                                Approve
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
         </div>
     )
 }
