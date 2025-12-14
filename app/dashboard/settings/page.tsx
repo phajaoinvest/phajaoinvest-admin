@@ -1,21 +1,130 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { User, Bell, Shield, Palette, Database, Mail, Key, Save } from 'lucide-react'
+import { User, Bell, Shield, Database, Mail, Key, Save, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/auth-store'
+import { authApi } from '@/lib/api/auth'
+import type { AdminProfile } from '@/lib/types'
+import { useToast } from '@/hooks/use-toast'
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user)
-  const [saved, setSaved] = useState(false)
+  const { toast } = useToast()
+  
+  // Profile state
+  const [profile, setProfile] = useState<AdminProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [tel, setTel] = useState('')
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+  // Password change state
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+
+  // Load profile on mount
+  useEffect(() => {
+    loadProfile()
+  }, [])
+
+  const loadProfile = async () => {
+    try {
+      setProfileLoading(true)
+      const data = await authApi.getProfile()
+      setProfile(data)
+      setFirstName(data.first_name || '')
+      setLastName(data.last_name || '')
+      setTel(data.tel || '')
+    } catch (error) {
+      console.error('Failed to load profile:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to load profile',
+        variant: 'destructive',
+      })
+    } finally {
+      setProfileLoading(false)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      setProfileSaving(true)
+      const updatedProfile = await authApi.updateProfile({
+        first_name: firstName,
+        last_name: lastName,
+        tel: tel,
+      })
+      setProfile(updatedProfile)
+      toast({
+        title: 'Success',
+        description: 'Profile updated successfully',
+      })
+    } catch (error) {
+      console.error('Failed to save profile:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile',
+        variant: 'destructive',
+      })
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    // Validate passwords
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'New passwords do not match',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Error',
+        description: 'New password must be at least 6 characters',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setPasswordSaving(true)
+      await authApi.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
+      // Clear password fields
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      toast({
+        title: 'Success',
+        description: 'Password changed successfully',
+      })
+    } catch (error: any) {
+      console.error('Failed to change password:', error)
+      const message = error?.response?.data?.message || 'Failed to change password'
+      toast({
+        title: 'Error',
+        description: message,
+        variant: 'destructive',
+      })
+    } finally {
+      setPasswordSaving(false)
+    }
   }
 
   return (
@@ -47,34 +156,93 @@ export default function SettingsPage() {
         <TabsContent value="profile" className="space-y-6">
           <Card className="p-6 bg-card border-border/40">
             <h3 className="text-lg font-medium mb-4">Profile Settings</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" defaultValue={user?.first_name?.split(' ')[0] || 'Admin'} />
+            {profileLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input 
+                      id="firstName" 
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Enter first name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input 
+                      id="lastName" 
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Enter last name"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" defaultValue={user?.last_name?.split(' ')[1] || 'User'} />
+                  <Label htmlFor="username">Username</Label>
+                  <Input 
+                    id="username" 
+                    value={profile?.username || ''} 
+                    disabled 
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">Username cannot be changed</p>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input 
+                    id="phone" 
+                    type="tel" 
+                    value={tel}
+                    onChange={(e) => setTel(e.target.value)}
+                    placeholder="+1 (555) 000-0000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Input 
+                    id="role" 
+                    value={profile?.role || 'N/A'} 
+                    disabled 
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Account Created</Label>
+                    <Input 
+                      value={profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'} 
+                      disabled 
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Last Updated</Label>
+                    <Input 
+                      value={profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : 'N/A'} 
+                      disabled 
+                      className="bg-muted"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleSaveProfile} 
+                  className="gap-2"
+                  disabled={profileSaving}
+                >
+                  {profileSaving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {profileSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue={user?.email || 'admin@phajaoinvest.com'} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" type="tel" placeholder="+1 (555) 000-0000" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Input id="role" defaultValue={user?.role || 'Super Admin'} disabled />
-              </div>
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                {saved ? 'Saved!' : 'Save Changes'}
-              </Button>
-            </div>
+            )}
           </Card>
         </TabsContent>
 
@@ -90,16 +258,46 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input id="currentPassword" type="password" />
+                    <Input 
+                      id="currentPassword" 
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
-                    <Input id="newPassword" type="password" />
+                    <Input 
+                      id="newPassword" 
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password (min 6 characters)"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <Input id="confirmPassword" type="password" />
+                    <Input 
+                      id="confirmPassword" 
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                    />
                   </div>
+                  <Button 
+                    onClick={handleChangePassword}
+                    disabled={passwordSaving || !currentPassword || !newPassword || !confirmPassword}
+                    className="gap-2"
+                  >
+                    {passwordSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Key className="w-4 h-4" />
+                    )}
+                    {passwordSaving ? 'Changing...' : 'Change Password'}
+                  </Button>
                 </div>
               </div>
               <div className="pt-4 border-t border-border/40">
@@ -107,7 +305,7 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Add an extra layer of security to your account
                 </p>
-                <Button variant="outline">Enable 2FA</Button>
+                <Button variant="outline" disabled>Enable 2FA (Coming Soon)</Button>
               </div>
               <div className="pt-4 border-t border-border/40">
                 <h4 className="text-sm font-medium mb-3">Active Sessions</h4>
@@ -118,16 +316,12 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-background/50">
                     <div>
                       <p className="text-sm font-medium">Current Session</p>
-                      <p className="text-xs text-muted-foreground">Chrome on macOS - Active now</p>
+                      <p className="text-xs text-muted-foreground">Active now</p>
                     </div>
-                    <Button variant="outline" size="sm">Logout</Button>
+                    <Button variant="outline" size="sm" onClick={() => authApi.logout()}>Logout</Button>
                   </div>
                 </div>
               </div>
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                Save Security Settings
-              </Button>
             </div>
           </Card>
         </TabsContent>
@@ -178,10 +372,9 @@ export default function SettingsPage() {
                 </div>
                 <input type="checkbox" className="w-4 h-4" />
               </div>
-              <Button onClick={handleSave} className="gap-2 mt-4">
-                <Save className="w-4 h-4" />
-                Save Preferences
-              </Button>
+              <p className="text-sm text-muted-foreground pt-2">
+                Note: Notification preferences are for display only. Backend support coming soon.
+              </p>
             </div>
           </Card>
         </TabsContent>
@@ -228,12 +421,11 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Enable maintenance mode to prevent customer access during updates
                 </p>
-                <Button variant="outline">Enable Maintenance Mode</Button>
+                <Button variant="outline" disabled>Enable Maintenance Mode (Coming Soon)</Button>
               </div>
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                Save System Settings
-              </Button>
+              <p className="text-sm text-muted-foreground pt-4">
+                Note: System settings are managed through environment variables and database configuration.
+              </p>
             </div>
           </Card>
         </TabsContent>
@@ -289,14 +481,13 @@ export default function SettingsPage() {
                   Send a test email to verify your configuration
                 </p>
                 <div className="flex gap-2">
-                  <Input placeholder="test@example.com" />
-                  <Button variant="outline">Send Test</Button>
+                  <Input placeholder="test@example.com" disabled />
+                  <Button variant="outline" disabled>Send Test</Button>
                 </div>
               </div>
-              <Button onClick={handleSave} className="gap-2">
-                <Save className="w-4 h-4" />
-                Save Email Settings
-              </Button>
+              <p className="text-sm text-muted-foreground pt-4">
+                Note: Email settings are managed through environment variables on the server.
+              </p>
             </div>
           </Card>
         </TabsContent>

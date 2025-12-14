@@ -94,17 +94,30 @@ export const useAuthStore = create<AuthState>()(
       },
 
       // Validate token
+      // Only logout if backend explicitly returns is_error: true or valid: false
+      // Don't logout on network errors (backend not reachable)
       validateToken: async () => {
         try {
           const result = await authApi.verifyToken()
+          
+          // If it's a network error, don't logout - just return true to keep user logged in
+          if (result.networkError) {
+            console.warn('Token validation skipped due to network error - keeping user logged in')
+            return true
+          }
+          
+          // Only logout if backend explicitly said the token is invalid
           if (!result.valid) {
+            console.log('Token invalid - backend explicitly rejected token')
             await get().logout()
             return false
           }
+          
           return true
         } catch (error) {
-          await get().logout()
-          return false
+          // Unexpected error - don't logout, just log the error
+          console.error('Unexpected error during token validation:', error)
+          return true
         }
       },
 

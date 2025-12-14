@@ -15,6 +15,9 @@ import type {
   ResetPasswordOtpRequest,
   ResetPasswordTokenRequest,
   AuthUser,
+  AdminProfile,
+  UpdateProfileRequest,
+  ChangePasswordRequest,
 } from '@/lib/types'
 
 const AUTH_ENDPOINTS = {
@@ -95,15 +98,38 @@ export const authApi = {
 
   /**
    * Verify token validity (for admin/user)
+   * Returns:
+   * - { valid: true, user, networkError: false } - token is valid
+   * - { valid: false, networkError: false } - backend explicitly says invalid
+   * - { valid: false, networkError: true } - couldn't reach backend
    */
-  async verifyToken(): Promise<{ valid: boolean; user?: AuthUser }> {
+  async verifyToken(): Promise<{ valid: boolean; user?: AuthUser; networkError?: boolean }> {
     try {
-      const response = await apiClient.get<{ valid: boolean; user?: AuthUser }>(
+      const response = await apiClient.get<{ valid: boolean; user?: AuthUser; is_error?: boolean }>(
         '/auth/verify-token'
       )
-      return response.data
-    } catch (error) {
-      return { valid: false }
+      
+      // Check if backend explicitly returned is_error: true or valid: false
+      if (response.data.is_error === true || response.data.valid === false) {
+        return { valid: false, networkError: false }
+      }
+      
+      return { valid: response.data.valid ?? true, user: response.data.user, networkError: false }
+    } catch (error: any) {
+      // Check if this is a response from backend with is_error or 401 status
+      if (error?.response) {
+        const status = error.response.status
+        const data = error.response.data
+        
+        // Backend responded with 401 or is_error: true - this is explicit invalid
+        if (status === 401 || data?.is_error === true) {
+          return { valid: false, networkError: false }
+        }
+      }
+      
+      // Network error or backend not reachable - don't treat as invalid
+      console.warn('Token verification failed due to network error:', error?.message || error)
+      return { valid: false, networkError: true }
     }
   },
 
@@ -168,6 +194,32 @@ export const authApi = {
    */
   async revokeAllSessions() {
     return apiClient.post(AUTH_ENDPOINTS.REVOKE_ALL_SESSIONS)
+  },
+
+  // ============ Profile Management ============
+
+  /**
+   * Get current admin/user profile
+   */
+  async getProfile(): Promise<AdminProfile> {
+    const response = await apiClient.get<AdminProfile>('/auth/profile')
+    return response.data
+  },
+
+  /**
+   * Update current admin/user profile
+   */
+  async updateProfile(data: UpdateProfileRequest): Promise<AdminProfile> {
+    const response = await apiClient.patch<AdminProfile>('/auth/profile', data)
+    return response.data
+  },
+
+  /**
+   * Change current admin/user password
+   */
+  async changePassword(data: ChangePasswordRequest): Promise<{ message: string }> {
+    const response = await apiClient.post<{ message: string }>('/auth/change-password', data)
+    return response.data
   },
 }
 

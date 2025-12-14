@@ -134,3 +134,34 @@ export interface Session extends BaseEntity {
   last_activity: string
   expires_at: string
 }
+
+// ============================================================================
+// Profile Management
+// ============================================================================
+
+export interface AdminProfile {
+  id: string
+  username: string
+  first_name: string | null
+  last_name: string | null
+  tel: string | null
+  gender: string | null
+  address: string | null
+  status: string
+  profile: string | null
+  role: string | null
+  role_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface UpdateProfileRequest {
+  first_name?: string
+  last_name?: string
+  tel?: string
+}
+
+export interface ChangePasswordRequest {
+  current_password: string
+  new_password: string
+}
