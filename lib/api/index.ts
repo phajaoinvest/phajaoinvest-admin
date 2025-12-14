@@ -7,7 +7,7 @@
 export { apiClient, tokenManager, authEvents, checkTokenValidity, type ApiResponse, type PaginatedResponse, type ApiError } from './client'
 
 // Auth
-export { authApi, passwordApi } from './auth'
+export { authApi, passwordApi, type TwoFactorRequiredResponse } from './auth'
 
 // Users & Permissions
 export { usersApi, rolesApi, permissionsApi } from './users'
@@ -64,3 +64,12 @@ export { pendingCountsApi, type PendingCounts } from './pending-counts'
 
 // Locations (Country, Province, District)
 export { countriesApi, provincesApi, districtsApi } from './locations'
+
+// Settings
+export {
+  settingsApi,
+  type NotificationSettings,
+  type UpdateNotificationSettings,
+  type SystemSetting,
+  type CreateSystemSetting,
+} from './settings'

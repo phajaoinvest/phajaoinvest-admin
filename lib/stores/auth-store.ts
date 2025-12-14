@@ -5,8 +5,8 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { authApi, tokenManager, authEvents } from '@/lib/api'
-import type { AuthUser, LoginRequest } from '@/lib/types'
+import { authApi, tokenManager, authEvents, type TwoFactorRequiredResponse } from '@/lib/api'
+import type { AuthUser, LoginRequest, LoginResponse } from '@/lib/types'
 
 // ============================================================================
 // Types
@@ -19,13 +19,18 @@ interface AuthState {
   isLoading: boolean
   error: string | null
   permissions: string[]
+  // 2FA state
+  requires2FA: boolean
+  tempToken: string | null
 
   // Actions
-  login: (credentials: LoginRequest) => Promise<void>
+  login: (credentials: LoginRequest) => Promise<{ requires2FA?: boolean }>
+  complete2FALogin: (code?: string, backupCode?: string) => Promise<void>
   logout: () => Promise<void>
   setUser: (user: AuthUser | null) => void
   setError: (error: string | null) => void
   clearError: () => void
+  clear2FA: () => void
   checkAuth: () => void
   validateToken: () => Promise<boolean>
   hasPermission: (permission: string) => boolean
@@ -46,14 +51,29 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
       error: null,
       permissions: [],
+      requires2FA: false,
+      tempToken: null,
 
       // Login
       login: async (credentials: LoginRequest) => {
-        set({ isLoading: true, error: null })
+        set({ isLoading: true, error: null, requires2FA: false, tempToken: null })
 
         try {
           const response = await authApi.login(credentials)
-          const { user } = response
+          
+          // Check if 2FA is required
+          if ('requires_2fa' in response && response.requires_2fa) {
+            set({
+              isLoading: false,
+              requires2FA: true,
+              tempToken: response.temp_token,
+            })
+            return { requires2FA: true }
+          }
+
+          // Normal login - cast to LoginResponse
+          const loginResponse = response as LoginResponse
+          const { user } = loginResponse
 
           // Extract permissions from user's role
           const permissions = user.role?.permissions?.map((p) => p.name) || user.permissions || []
@@ -64,7 +84,10 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
             permissions,
+            requires2FA: false,
+            tempToken: null,
           })
+          return {}
         } catch (error) {
           const message = error instanceof Error 
             ? error.message 
@@ -76,9 +99,58 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: message,
             permissions: [],
+            requires2FA: false,
+            tempToken: null,
           })
           throw error
         }
+      },
+
+      // Complete 2FA login
+      complete2FALogin: async (code?: string, backupCode?: string) => {
+        const { tempToken } = get()
+        if (!tempToken) {
+          throw new Error('No 2FA session found')
+        }
+
+        set({ isLoading: true, error: null })
+
+        try {
+          const response = await authApi.verify2FALogin(tempToken, code, backupCode)
+          const { user } = response
+
+          // Extract permissions from user's role
+          const permissions = user.role?.permissions?.map((p) => p.name) || user.permissions || []
+
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            error: null,
+            permissions,
+            requires2FA: false,
+            tempToken: null,
+          })
+        } catch (error) {
+          const message = error instanceof Error 
+            ? error.message 
+            : (error as { message?: string })?.message || 'Invalid verification code'
+          
+          set({
+            isLoading: false,
+            error: message,
+          })
+          throw error
+        }
+      },
+
+      // Clear 2FA state
+      clear2FA: () => {
+        set({
+          requires2FA: false,
+          tempToken: null,
+          error: null,
+        })
       },
 
       // Logout
@@ -90,6 +162,8 @@ export const useAuthStore = create<AuthState>()(
           isLoading: false,
           error: null,
           permissions: [],
+          requires2FA: false,
+          tempToken: null,
         })
       },
 

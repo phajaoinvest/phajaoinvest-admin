@@ -29,14 +29,49 @@ const AUTH_ENDPOINTS = {
   REVOKE_SESSION: '/auth/sessions/revoke',
   REVOKE_OTHER_SESSIONS: '/auth/sessions/revoke-others',
   REVOKE_ALL_SESSIONS: '/auth/sessions/revoke-all',
+  TWO_FACTOR_VERIFY: '/auth/2fa/verify',
 } as const
+
+// 2FA response types
+export interface TwoFactorRequiredResponse {
+  requires_2fa: boolean
+  temp_token: string
+  message: string
+}
 
 export const authApi = {
   /**
    * Admin/Staff login
    */
-  async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await apiClient.post<LoginResponse>(AUTH_ENDPOINTS.LOGIN, data)
+  async login(data: LoginRequest): Promise<LoginResponse | TwoFactorRequiredResponse> {
+    const response = await apiClient.post<LoginResponse | TwoFactorRequiredResponse>(AUTH_ENDPOINTS.LOGIN, data)
+    
+    // Check if 2FA is required
+    if ('requires_2fa' in response.data && response.data.requires_2fa) {
+      return response.data as TwoFactorRequiredResponse
+    }
+    
+    const loginResponse = response.data as LoginResponse
+    if (loginResponse.access_token) {
+      tokenManager.setTokens(
+        loginResponse.access_token,
+        loginResponse.refresh_token,
+        loginResponse.session_id
+      )
+    }
+    
+    return loginResponse
+  },
+
+  /**
+   * Complete 2FA login
+   */
+  async verify2FALogin(tempToken: string, code?: string, backupCode?: string): Promise<LoginResponse> {
+    const response = await apiClient.post<LoginResponse>(AUTH_ENDPOINTS.TWO_FACTOR_VERIFY, {
+      temp_token: tempToken,
+      code,
+      backup_code: backupCode,
+    })
     
     if (response.data.access_token) {
       tokenManager.setTokens(
