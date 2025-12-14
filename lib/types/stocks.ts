@@ -11,19 +11,63 @@ import { BaseEntity, StockPickStatus, StockPickAvailability, ServiceType } from 
 export interface Stock extends BaseEntity {
   symbol: string
   name: string
-  description: string | null
-  sector: string | null
-  industry: string | null
-  exchange: string | null
-  country: string | null
   currency: string
-  current_price: number | null
+  exchange: string | null
+  primary_exchange: string | null
+  security_type: string | null
+  company: string | null
+  country: string | null
+  description: string | null
+  industry: string | null
+  sector: string | null
   market_cap: number | null
+  shares_outstanding: number | null
+  
+  // Real-time Price Data
+  last_price: number | null
+  current_price: number | null // alias for last_price
+  previous_close: number | null
+  open_price: number | null
+  bid_price: number | null
+  ask_price: number | null
+  bid_size: number | null
+  ask_size: number | null
+  high_price: number | null
+  low_price: number | null
+  volume: number | null
+  change: number | null
+  change_percent: number | null
+  
+  // Trading Information
+  min_tick: number | null
+  min_size: number | null
+  is_tradable: boolean
+  is_active: boolean
+  
+  // Market Hours & Status
+  market_status: string | null
+  market_open_time: string | null
+  market_close_time: string | null
+  
+  // Timestamps
+  last_price_update: string | null
+  last_trade_time: string | null
+  
+  // Fundamental Data
   pe_ratio: number | null
   dividend_yield: number | null
-  is_active: boolean
+  eps: number | null
+  week_52_high: number | null
+  week_52_low: number | null
+  
+  // Data Source
+  data_source: string | null
+  data_type: string | null
+  data_delay_minutes: number | null
+  
   category_id: string | null
   category?: StockCategory | null
+  stockCategory?: StockCategory | null
 }
 
 // ============================================================================
@@ -85,13 +129,21 @@ export interface CustomerStockPickSelection extends BaseEntity {
 export interface CustomerStock extends BaseEntity {
   customer_id: string
   stock_id: string
-  quantity: number
-  average_buy_price: number
-  total_invested: number
-  current_value: number
-  unrealized_pnl: number
-  unrealized_pnl_percentage: number
-  stock?: Stock
+  buying_price: number | null
+  share: number | null
+  total_buying_price: number | null
+  change: string | null
+  avg_price: number | null
+  cost_basis: number | null
+  market_value: number | null
+  daily_pl: number | null
+  stock?: Stock | null
+  customer?: {
+    id: string
+    first_name: string
+    last_name: string | null
+    email: string
+  } | null
 }
 
 // ============================================================================

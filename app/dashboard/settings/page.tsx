@@ -51,11 +51,11 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" defaultValue={user?.name?.split(' ')[0] || 'Admin'} />
+                  <Input id="firstName" defaultValue={user?.first_name?.split(' ')[0] || 'Admin'} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" defaultValue={user?.name?.split(' ')[1] || 'User'} />
+                  <Input id="lastName" defaultValue={user?.last_name?.split(' ')[1] || 'User'} />
                 </div>
               </div>
               <div className="space-y-2">

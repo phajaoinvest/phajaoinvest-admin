@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/auth-store'
 import { usePendingCounts } from '@/hooks'
 import { Button } from '@/components/ui/button'
-import { BarChart3, Users, UserCog, Package, TrendingUp, Clock as Stock, Zap, CreditCard, LogOut, Settings, FileText, ChevronDown, ChevronRight, Briefcase } from 'lucide-react'
+import { BarChart3, Users, UserCog, Package, TrendingUp, Clock as Stock, Zap, CreditCard, LogOut, Settings, FileText, ChevronDown, ChevronRight, Briefcase, ArrowUpDown, LineChart, MapPin, Globe, Building } from 'lucide-react'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -18,6 +18,9 @@ const navItems = [
   // { href: '/dashboard/investments', label: 'Investments', icon: TrendingUp },
   // { href: '/dashboard/stock-accounts', label: 'Stock Accounts', icon: Stock },
   { href: '/dashboard/stock-picks', label: 'Stock Picks', icon: Zap },
+  { href: '/dashboard/stocks', label: 'Stocks', icon: LineChart },
+  { href: '/dashboard/customer-stocks', label: 'Customer Holdings', icon: Briefcase },
+  { href: '/dashboard/stock-transactions', label: 'Stock Transactions', icon: ArrowUpDown },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings },
 ]
 
@@ -34,6 +37,12 @@ const paymentItems = [
   { href: '/dashboard/payments/investments', label: 'Investment Payments' },
 ]
 
+const locationItems = [
+  { href: '/dashboard/locations/countries', label: 'Countries', icon: Globe },
+  { href: '/dashboard/locations/provinces', label: 'Provinces', icon: MapPin },
+  { href: '/dashboard/locations/districts', label: 'Districts', icon: Building },
+]
+
 export function Sidebar() {
   const pathname = usePathname()
   const logout = useAuthStore((state) => state.logout)
@@ -44,6 +53,9 @@ export function Sidebar() {
   )
   const [paymentsExpanded, setPaymentsExpanded] = useState(
     pathname.startsWith('/dashboard/payments')
+  )
+  const [locationsExpanded, setLocationsExpanded] = useState(
+    pathname.startsWith('/dashboard/locations')
   )
   
   // Fetch pending counts for badges
@@ -57,6 +69,7 @@ export function Sidebar() {
   const ab = serviceItems.map((item) => item.href)
   const isServiceActive = serviceItems.some((item) => pathname.includes(item.href))
   const isPaymentActive = paymentItems.some((item) => pathname.includes(item.href))
+  const isLocationActive = locationItems.some((item) => pathname.includes(item.href))
 
   return (
     <aside
@@ -226,6 +239,53 @@ export function Sidebar() {
                         {count > 99 ? '99+' : count}
                       </span>
                     )}
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Locations Dropdown */}
+        <div>
+          <button
+            onClick={() => setLocationsExpanded(!locationsExpanded)}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-md text-sm font-medium transition-all duration-200 ${isLocationActive
+              ? 'bg-gradient-to-r from-sidebar-primary to-sidebar-primary/80 text-sidebar-primary-foreground shadow-md'
+              : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+              }`}
+            title={sidebarCollapsed ? 'Locations' : undefined}
+          >
+            <MapPin className="w-4 h-4 flex-shrink-0" />
+            {!sidebarCollapsed && (
+              <>
+                <span className="flex-1 text-left">Locations</span>
+                {locationsExpanded ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </>
+            )}
+          </button>
+
+          {/* Location Sub-items */}
+          {locationsExpanded && !sidebarCollapsed && (
+            <div className="mt-1 ml-4 space-y-1 border-l-2 border-sidebar-border pl-2">
+              {locationItems.map((item) => {
+                const isActive = pathname.includes(item.href)
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-all duration-200 ${isActive
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
+                      }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
                   </Link>
                 )
               })}

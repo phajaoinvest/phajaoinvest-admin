@@ -42,7 +42,7 @@ export const stocksApi = {
    * Get stock by ID
    */
   async getById(id: string) {
-    return apiClient.get<Stock>(`/stocks/${id}`)
+    return apiClient.get<Stock>(`/stocks/id/${id}`)
   },
 
   /**
@@ -245,23 +245,35 @@ export const stockPicksCustomerApi = {
 // Customer Stocks
 // ============================================================================
 
+export interface CustomerStockFilters {
+  customer_id?: string
+  stock_id?: string
+}
+
 export const customerStocksApi = {
   /**
-   * Get my stock holdings
+   * Get all customer stock holdings (admin)
+   */
+  async getAll(params?: PaginationParams & CustomerStockFilters) {
+    return apiClient.getPaginated<CustomerStock>('/customer-stocks/admin/all', params)
+  },
+
+  /**
+   * Get customer stock by ID (admin)
+   */
+  async getById(id: string) {
+    return apiClient.get<CustomerStock>(`/customer-stocks/admin/${id}`)
+  },
+
+  /**
+   * Get my stock holdings (customer self-access)
    */
   async getMyHoldings() {
     return apiClient.get<CustomerStock[]>('/customer-stocks/my-holdings')
   },
 
   /**
-   * Get holding by ID
-   */
-  async getById(id: string) {
-    return apiClient.get<CustomerStock>(`/customer-stocks/${id}`)
-  },
-
-  /**
-   * Get portfolio summary
+   * Get portfolio summary (customer self-access)
    */
   async getPortfolioSummary() {
     return apiClient.get('/customer-stocks/portfolio-summary')
