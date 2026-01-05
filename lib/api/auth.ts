@@ -45,12 +45,12 @@ export const authApi = {
    */
   async login(data: LoginRequest): Promise<LoginResponse | TwoFactorRequiredResponse> {
     const response = await apiClient.post<LoginResponse | TwoFactorRequiredResponse>(AUTH_ENDPOINTS.LOGIN, data)
-    
+
     // Check if 2FA is required
     if ('requires_2fa' in response.data && response.data.requires_2fa) {
       return response.data as TwoFactorRequiredResponse
     }
-    
+
     const loginResponse = response.data as LoginResponse
     if (loginResponse.access_token) {
       tokenManager.setTokens(
@@ -59,7 +59,7 @@ export const authApi = {
         loginResponse.session_id
       )
     }
-    
+
     return loginResponse
   },
 
@@ -72,7 +72,7 @@ export const authApi = {
       code,
       backup_code: backupCode,
     })
-    
+
     if (response.data.access_token) {
       tokenManager.setTokens(
         response.data.access_token,
@@ -80,7 +80,7 @@ export const authApi = {
         response.data.session_id
       )
     }
-    
+
     return response.data
   },
 
@@ -92,7 +92,7 @@ export const authApi = {
       AUTH_ENDPOINTS.CUSTOMER_LOGIN,
       data
     )
-    
+
     if (response.data.access_token) {
       tokenManager.setTokens(
         response.data.access_token,
@@ -100,7 +100,7 @@ export const authApi = {
         response.data.session_id
       )
     }
-    
+
     return response.data
   },
 
@@ -119,7 +119,7 @@ export const authApi = {
       AUTH_ENDPOINTS.REFRESH_TOKEN,
       data
     )
-    
+
     if (response.data.access_token) {
       tokenManager.setTokens(
         response.data.access_token,
@@ -127,7 +127,7 @@ export const authApi = {
         response.data.session_id
       )
     }
-    
+
     return response.data
   },
 
@@ -143,25 +143,31 @@ export const authApi = {
       const response = await apiClient.get<{ valid: boolean; user?: AuthUser; is_error?: boolean }>(
         '/auth/verify-token'
       )
-      
+
       // Check if backend explicitly returned is_error: true or valid: false
       if (response.data.is_error === true || response.data.valid === false) {
         return { valid: false, networkError: false }
       }
-      
+
       return { valid: response.data.valid ?? true, user: response.data.user, networkError: false }
     } catch (error: any) {
       // Check if this is a response from backend with is_error or 401 status
       if (error?.response) {
         const status = error.response.status
         const data = error.response.data
-        
+
         // Backend responded with 401 or is_error: true - this is explicit invalid
         if (status === 401 || data?.is_error === true) {
           return { valid: false, networkError: false }
         }
       }
-      
+
+      // Check for ApiError structure from ApiClient
+      // ApiClient throws errors with status_code, checking this catches the 401
+      if (error?.status_code === 401 || error?.is_error === true) {
+        return { valid: false, networkError: false }
+      }
+
       // Network error or backend not reachable - don't treat as invalid
       console.warn('Token verification failed due to network error:', error?.message || error)
       return { valid: false, networkError: true }

@@ -60,7 +60,7 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const response = await authApi.login(credentials)
-          
+
           // Check if 2FA is required
           if ('requires_2fa' in response && response.requires_2fa) {
             set({
@@ -89,10 +89,10 @@ export const useAuthStore = create<AuthState>()(
           })
           return {}
         } catch (error) {
-          const message = error instanceof Error 
-            ? error.message 
+          const message = error instanceof Error
+            ? error.message
             : (error as { message?: string })?.message || 'Login failed'
-          
+
           set({
             user: null,
             isAuthenticated: false,
@@ -132,10 +132,10 @@ export const useAuthStore = create<AuthState>()(
             tempToken: null,
           })
         } catch (error) {
-          const message = error instanceof Error 
-            ? error.message 
+          const message = error instanceof Error
+            ? error.message
             : (error as { message?: string })?.message || 'Invalid verification code'
-          
+
           set({
             isLoading: false,
             error: message,
@@ -155,16 +155,19 @@ export const useAuthStore = create<AuthState>()(
 
       // Logout
       logout: async () => {
-        await authApi.logout()
-        set({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null,
-          permissions: [],
-          requires2FA: false,
-          tempToken: null,
-        })
+        try {
+          await authApi.logout()
+        } finally {
+          set({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+            error: null,
+            permissions: [],
+            requires2FA: false,
+            tempToken: null,
+          })
+        }
       },
 
       // Validate token
@@ -173,20 +176,20 @@ export const useAuthStore = create<AuthState>()(
       validateToken: async () => {
         try {
           const result = await authApi.verifyToken()
-          
+
           // If it's a network error, don't logout - just return true to keep user logged in
           if (result.networkError) {
             console.warn('Token validation skipped due to network error - keeping user logged in')
             return true
           }
-          
+
           // Only logout if backend explicitly said the token is invalid
           if (!result.valid) {
             console.log('Token invalid - backend explicitly rejected token')
             await get().logout()
             return false
           }
-          
+
           return true
         } catch (error) {
           // Unexpected error - don't logout, just log the error
@@ -215,7 +218,7 @@ export const useAuthStore = create<AuthState>()(
       checkAuth: () => {
         const hasToken = tokenManager.isAuthenticated()
         const { user, isAuthenticated } = get()
-        
+
         // If no token, clear everything
         if (!hasToken) {
           if (isAuthenticated || user) {
@@ -227,7 +230,7 @@ export const useAuthStore = create<AuthState>()(
           }
           return
         }
-        
+
         // If we have token and persisted user state, ensure isAuthenticated is true
         if (hasToken && user && !isAuthenticated) {
           const permissions = user.role?.permissions?.map((p) => p.name) || user.permissions || []
