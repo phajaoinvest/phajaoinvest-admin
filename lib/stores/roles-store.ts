@@ -25,10 +25,10 @@ interface RolesState {
   currentRole: Role | null
   permissions: Permission[]
   rolePermissions: RolePermission[]
-  
+
   // Pagination
   pagination: PaginationMeta
-  
+
   // Loading states
   isLoading: boolean
   isCreating: boolean
@@ -36,7 +36,7 @@ interface RolesState {
   isDeleting: boolean
   isLoadingPermissions: boolean
   isAssigningPermissions: boolean
-  
+
   // Error
   error: string | null
 
@@ -46,14 +46,14 @@ interface RolesState {
   createRole: (data: CreateRoleRequest) => Promise<Role>
   updateRole: (id: string, data: UpdateRoleRequest) => Promise<Role>
   deleteRole: (id: string) => Promise<void>
-  
+
   // Permissions
   fetchPermissions: (params?: PaginationParams) => Promise<void>
-  fetchRolePermissions: (roleId: string) => Promise<void>
+  fetchRolePermissions: (roleId: string) => Promise<RolePermission[]>
   assignPermissionToRole: (roleId: string, permissionId: string) => Promise<void>
   removePermissionFromRole: (roleId: string, permissionId: string) => Promise<void>
   assignMultiplePermissionsToRole: (roleId: string, permissionIds: string[]) => Promise<void>
-  
+
   // Utility
   setCurrentRole: (role: Role | null) => void
   clearError: () => void
@@ -133,7 +133,7 @@ export const useRolesStore = create<RolesState>((set, get) => ({
 
     try {
       const response = await rolesApi.create(data)
-      
+
       set((state) => ({
         roles: [response.data, ...state.roles],
         isCreating: false,
@@ -153,7 +153,7 @@ export const useRolesStore = create<RolesState>((set, get) => ({
 
     try {
       const response = await rolesApi.update(id, data)
-      
+
       set((state) => ({
         roles: state.roles.map((r) => (r.id === id ? response.data : r)),
         currentRole: state.currentRole?.id === id ? response.data : state.currentRole,
@@ -174,7 +174,7 @@ export const useRolesStore = create<RolesState>((set, get) => ({
 
     try {
       await rolesApi.delete(id)
-      
+
       set((state) => ({
         roles: state.roles.filter((r) => r.id !== id),
         currentRole: state.currentRole?.id === id ? null : state.currentRole,
@@ -207,9 +207,11 @@ export const useRolesStore = create<RolesState>((set, get) => ({
     try {
       const response = await rolesApi.getPermissions(roleId)
       set({ rolePermissions: response.data, isLoadingPermissions: false })
+      return response.data
     } catch (error) {
       const message = (error as { message?: string })?.message || 'Failed to fetch role permissions'
       set({ error: message, isLoadingPermissions: false })
+      return []
     }
   },
 
@@ -219,7 +221,7 @@ export const useRolesStore = create<RolesState>((set, get) => ({
 
     try {
       await rolesApi.assignPermission(roleId, permissionId)
-      
+
       // Refresh role permissions
       const response = await rolesApi.getPermissions(roleId)
       set({ rolePermissions: response.data, isAssigningPermissions: false })
@@ -236,7 +238,7 @@ export const useRolesStore = create<RolesState>((set, get) => ({
 
     try {
       await rolesApi.removePermission(roleId, permissionId)
-      
+
       // Refresh role permissions
       const response = await rolesApi.getPermissions(roleId)
       set({ rolePermissions: response.data, isAssigningPermissions: false })
@@ -247,18 +249,19 @@ export const useRolesStore = create<RolesState>((set, get) => ({
     }
   },
 
-  // Assign multiple permissions to role
+  // Assign multiple permissions to role (Sync)
   assignMultiplePermissionsToRole: async (roleId, permissionIds) => {
     set({ isAssigningPermissions: true, error: null })
 
     try {
-      await rolesApi.assignMultiplePermissions(roleId, permissionIds)
-      
+      await rolesApi.syncPermissions(roleId, permissionIds)
+
       // Refresh role permissions
       const response = await rolesApi.getPermissions(roleId)
       set({ rolePermissions: response.data, isAssigningPermissions: false })
     } catch (error) {
-      const message = (error as { message?: string })?.message || 'Failed to assign permissions'
+      const message =
+        (error as { message?: string })?.message || 'Failed to sync permissions'
       set({ error: message, isAssigningPermissions: false })
       throw error
     }

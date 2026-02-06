@@ -134,6 +134,13 @@ export const rolesApi = {
   async assignMultiplePermissions(roleId: string, permissionIds: string[]) {
     return apiClient.post(`/roles/${roleId}/permissions/bulk`, { permission_ids: permissionIds })
   },
+
+  /**
+   * Sync permissions for a role
+   */
+  async syncPermissions(roleId: string, permissionIds: string[]) {
+    return apiClient.post(`/roles/${roleId}/permissions/sync`, { permission_ids: permissionIds })
+  },
 }
 
 // ============================================================================
