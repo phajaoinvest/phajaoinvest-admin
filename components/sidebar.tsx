@@ -25,6 +25,7 @@ const navItems = [
   { href: '/dashboard/customers', label: 'Customers', icon: Users },
   { href: '/dashboard/staff', label: 'Staff & Roles', icon: UserCog },
   { href: '/dashboard/packages', label: 'Packages', icon: Package },
+  { href: '/dashboard/coupons', label: 'Coupons', icon: FileText },
   // { href: '/dashboard/subscriptions', label: 'Subscriptions', icon: FileText },
   // { href: '/dashboard/investments', label: 'Investments', icon: TrendingUp },
   // { href: '/dashboard/stock-accounts', label: 'Stock Accounts', icon: Stock },
@@ -68,7 +69,7 @@ export function Sidebar() {
   const [locationsExpanded, setLocationsExpanded] = useState(
     pathname.startsWith('/dashboard/locations')
   )
-  
+
   // Fetch pending counts for badges
   const { counts } = usePendingCounts()
 
@@ -106,7 +107,7 @@ export function Sidebar() {
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
-            
+
             const linkContent = (
               <Link
                 href={item.href}
@@ -119,7 +120,7 @@ export function Sidebar() {
                 {!sidebarCollapsed && item.label}
               </Link>
             )
-            
+
             if (sidebarCollapsed) {
               return (
                 <Tooltip key={item.href}>
@@ -132,7 +133,7 @@ export function Sidebar() {
                 </Tooltip>
               )
             }
-            
+
             return <div key={item.href}>{linkContent}</div>
           })}
 

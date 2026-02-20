@@ -49,6 +49,7 @@ export { walletsApi, walletsAdminApi, transferHistoryApi, transferHistoryAdminAp
 
 // Subscriptions
 export { packagesApi, subscriptionsApi, paymentsApi } from './subscriptions'
+export { couponsApi } from './coupons'
 
 // Dashboard & Others
 export { dashboardApi, auditLogsApi, locationApi, investTypesApi, boundsApi } from './dashboard'

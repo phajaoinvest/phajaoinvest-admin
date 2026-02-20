@@ -9,6 +9,12 @@ import { useDebounce, usePagination } from '@/hooks'
 import { ServiceType } from '@/lib/types'
 import type { SubscriptionPackage, CreatePackageRequest, UpdatePackageRequest, PaginationParams, PackageFilters } from '@/lib/types'
 import { Plus, Edit2, Trash2, X, Eye, Search, MoreVertical, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 // Service type labels for display
 const SERVICE_TYPE_LABELS: Record<string, string> = {
@@ -372,53 +378,35 @@ export default function PackagesPage() {
                           </span>
                         </td>
                         <td className="p-4">
-                          <div className="flex items-center justify-end relative">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                toggleDropdown(pkg.id)
-                              }}
-                              className="text-xs font-light h-8 w-8 p-0"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-
-                            {openDropdownId === pkg.id && (
-                              <div 
-                                className="absolute right-0 top-10 z-50 bg-background border border-border rounded-md shadow-lg py-1 min-w-[140px]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  onClick={() => {
-                                    setViewingPackage(pkg)
-                                    setOpenDropdownId(null)
-                                  }}
-                                  className="w-full px-4 py-2 text-sm text-left hover:bg-secondary/50 flex items-center gap-2"
+                          <div className="flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs font-light h-8 w-8 p-0"
                                 >
-                                  <Eye className="w-4 h-4" />
+                                  <MoreVertical className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-32">
+                                <DropdownMenuItem onClick={() => setViewingPackage(pkg)}>
+                                  <Eye className="w-4 h-4 mr-2" />
                                   View
-                                </button>
-                                <button
-                                  onClick={() => openEditModal(pkg)}
-                                  className="w-full px-4 py-2 text-sm text-left hover:bg-secondary/50 flex items-center gap-2"
-                                >
-                                  <Edit2 className="w-4 h-4" />
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openEditModal(pkg)}>
+                                  <Edit2 className="w-4 h-4 mr-2" />
                                   Edit
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setDeletingPackage(pkg)
-                                    setOpenDropdownId(null)
-                                  }}
-                                  className="w-full px-4 py-2 text-sm text-left hover:bg-destructive/10 text-destructive flex items-center gap-2"
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                  onClick={() => setDeletingPackage(pkg)}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4 mr-2" />
                                   Delete
-                                </button>
-                              </div>
-                            )}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </td>
                       </tr>

@@ -31,6 +31,10 @@ const pageMetadata: Record<string, { title: string; description: string }> = {
     title: 'Package Management',
     description: 'Manage membership packages and benefits',
   },
+  '/dashboard/coupons': {
+    title: 'Coupon Management',
+    description: 'Manage discount coupons and promotional codes',
+  },
   '/dashboard/subscriptions': {
     title: 'Subscription Management',
     description: 'Manage customer subscriptions and renewals',
@@ -116,26 +120,26 @@ export default function DashboardLayout({
     const performAuthCheck = async () => {
       // Check if we have a token in localStorage
       const hasToken = tokenManager.isAuthenticated()
-      
+
       // If no token, redirect immediately
       if (!hasToken) {
         router.push('/login')
         return
       }
-      
+
       // Sync auth state with token
       checkAuth()
-      
+
       // Validate token with backend
       const isValid = await validateToken()
       if (!isValid) {
         router.push('/login')
         return
       }
-      
+
       setIsHydrated(true)
     }
-    
+
     performAuthCheck()
   }, [checkAuth, validateToken, router])
 

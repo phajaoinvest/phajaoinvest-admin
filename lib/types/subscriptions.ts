@@ -180,6 +180,7 @@ export interface Payment extends BaseEntity {
   status: PaymentStatus
   payment_method: string | null
   payment_slip: string | null
+  description?: string
   bank_reference: string | null
   approved_by: string | null
   approved_at: string | null

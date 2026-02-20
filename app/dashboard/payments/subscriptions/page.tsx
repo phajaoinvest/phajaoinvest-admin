@@ -224,10 +224,11 @@ export default function PaymentsPage() {
   }
 
   const exportToCSV = () => {
-    const csvHeaders = ['Date', 'Customer ID', 'Amount', 'Status']
+    const csvHeaders = ['Date', 'Customer ID', 'Type', 'Amount', 'Status']
     const csvRows = pendingPayments.map((payment) => [
       payment.created_at,
       payment.customer_id,
+      payment.amount === 0 || payment.description?.toLowerCase().includes('coupon') ? 'Coupon' : 'Payment',
       payment.amount?.toString() || '0',
       payment.status,
     ])
@@ -398,6 +399,7 @@ export default function PaymentsPage() {
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">No</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Date</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Customer</th>
+                    <th className="text-left py-3 px-4 font-medium text-muted-foreground">Type</th>
                     <th className="text-right py-3 px-4 font-medium text-muted-foreground">Amount</th>
                     <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                     <th className="text-center py-3 px-4 font-medium text-muted-foreground">Actions</th>
@@ -419,6 +421,11 @@ export default function PaymentsPage() {
                             <p className="text-xs text-muted-foreground">{payment.customer.email}</p>
                           )}
                         </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-secondary/50 text-xs font-medium">
+                          {payment.amount === 0 || payment.description?.toLowerCase().includes('coupon') ? 'Coupon' : 'Payment'}
+                        </span>
                       </td>
                       <td className="py-3 px-4 text-right font-medium">${Number(payment.amount || 0).toLocaleString()}</td>
                       <td className="py-3 px-4">
@@ -535,6 +542,12 @@ export default function PaymentsPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Date:</span>
                     <span className="text-sm font-medium">{new Date(selectedPayment.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Payment Type:</span>
+                    <span className="text-sm font-medium">
+                      {selectedPayment.amount === 0 || selectedPayment.description?.toLowerCase().includes('coupon') ? 'Coupon' : 'Payment'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Amount:</span>
