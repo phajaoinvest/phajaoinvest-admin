@@ -47,6 +47,20 @@ export interface CreateSystemSetting {
   is_public?: boolean;
 }
 
+export interface BackupHistoryItem {
+  id: string;
+  fileName: string;
+  status: string;
+  type: string;
+  errorMessage: string | null;
+  fileSizeBytes: number | null;
+  downloadUrl: string | null;
+  bunnyCDNFilePath: string | null;
+  isDeletedFromStorage: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ============================================================================
 // Settings API
 // ============================================================================
@@ -83,10 +97,8 @@ export const settingsApi = {
    * Get all system settings
    */
   async getSystemSettings(category?: string): Promise<SystemSetting[]> {
-    const params = category ? { category } : {};
-    const response = await apiClient.get<SystemSetting[]>("/settings/system", {
-      params,
-    });
+    const params = category ? { category } : undefined;
+    const response = await apiClient.get<SystemSetting[]>("/settings/system", params);
     return response.data;
   },
 
@@ -160,6 +172,26 @@ export const settingsApi = {
    */
   async initializeDefaults(): Promise<void> {
     await apiClient.post("/settings/initialize");
+  },
+
+  /**
+   * Trigger manual database backup
+   */
+  async triggerBackup(): Promise<{ downloadUrl: string; fileName: string }> {
+    const response = await apiClient.post<{ downloadUrl: string; fileName: string }>(
+      "/settings/database/backup"
+    );
+    return response.data;
+  },
+
+  /**
+   * Get database backup history
+   */
+  async getBackupHistory(): Promise<BackupHistoryItem[]> {
+    const response = await apiClient.get<BackupHistoryItem[]>(
+      "/settings/database/backup/history"
+    );
+    return response.data;
   },
 
   // ============ Two-Factor Authentication ============
