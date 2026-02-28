@@ -7,6 +7,9 @@ import type { SubscriptionPackage } from '@/lib/types'
 
 interface CouponFormData {
     code: string
+    is_bulk: boolean
+    generate_count: string
+    code_prefix: string
     description: string
     discount_type: CouponDiscountType
     discount_value: string
@@ -68,28 +71,68 @@ export function CouponFormModal({
                     </div>
 
                     <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-light text-muted-foreground">Coupon Code *</label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="e.g. SUMMER2024"
-                                        value={formData.code}
-                                        onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                        className="text-sm font-bold uppercase flex-1"
+                        {!editingId && (
+                            <div className="flex items-center gap-2 mb-4">
+                                <label className="flex items-center gap-2 text-sm font-light cursor-pointer text-muted-foreground">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.is_bulk}
+                                        onChange={(e) => setFormData({ ...formData, is_bulk: e.target.checked })}
+                                        className="w-4 h-4 text-primary rounded border-border bg-background"
                                     />
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={generateRandomCode}
-                                        title="Generate Random Code"
-                                        className="shrink-0"
-                                    >
-                                        <Wand2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
+                                    Bulk Generate Multiple Coupons
+                                </label>
                             </div>
+                        )}
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {formData.is_bulk && !editingId ? (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-light text-muted-foreground">Number of Coupons *</label>
+                                        <Input
+                                            type="number"
+                                            min="1"
+                                            max="1000"
+                                            placeholder="e.g. 100"
+                                            value={formData.generate_count}
+                                            onChange={(e) => setFormData({ ...formData, generate_count: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-light text-muted-foreground">Code Prefix (Optional)</label>
+                                        <Input
+                                            placeholder="e.g. SUMMER"
+                                            value={formData.code_prefix}
+                                            onChange={(e) => setFormData({ ...formData, code_prefix: e.target.value.toUpperCase() })}
+                                            className="uppercase font-bold"
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-sm font-light text-muted-foreground">Coupon Code *</label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="e.g. SUMMER2024"
+                                            value={formData.code}
+                                            onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                            className="text-sm font-bold uppercase flex-1"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={generateRandomCode}
+                                            title="Generate Random Code"
+                                            className="shrink-0"
+                                        >
+                                            <Wand2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <label className="text-sm font-light text-muted-foreground">Discount Type *</label>
                                 <div className="flex gap-2">
@@ -220,7 +263,7 @@ export function CouponFormModal({
                     <div className="flex gap-2 mt-8">
                         <Button
                             onClick={onSave}
-                            disabled={isProcessing || !formData.code || !formData.discount_value}
+                            disabled={isProcessing || (!formData.code && !formData.is_bulk) || (!formData.generate_count && formData.is_bulk) || !formData.discount_value}
                             className="bg-primary hover:bg-primary/90 text-sm font-light flex-1"
                         >
                             {isProcessing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}

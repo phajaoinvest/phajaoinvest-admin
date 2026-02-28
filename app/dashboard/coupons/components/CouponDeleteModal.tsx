@@ -1,22 +1,22 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Trash2, X, Loader2 } from 'lucide-react'
-import type { Coupon } from '@/lib/types'
+import type { CouponGroup } from '@/lib/types'
 
 interface CouponDeleteModalProps {
-    coupon: Coupon | null
+    couponGroup: CouponGroup | null
     isProcessing: boolean
     onConfirm: () => void
     onClose: () => void
 }
 
 export function CouponDeleteModal({
-    coupon,
+    couponGroup,
     isProcessing,
     onConfirm,
     onClose,
 }: CouponDeleteModalProps) {
-    if (!coupon) return null
+    if (!couponGroup) return null
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -31,10 +31,10 @@ export function CouponDeleteModal({
                         </Button>
                     </div>
 
-                    <h3 className="text-xl font-light text-foreground mb-2">Delete Coupon</h3>
+                    <h3 className="text-xl font-light text-foreground mb-2">Delete {couponGroup.is_bulk ? 'Batch' : 'Coupon'}</h3>
                     <p className="text-sm text-muted-foreground mb-6">
-                        Are you sure you want to delete coupon <span className="font-bold text-foreground">{coupon.code}</span>?
-                        This will prevent any future usage of this code. This action cannot be undone.
+                        Are you sure you want to delete {couponGroup.is_bulk ? 'all coupons in batch' : 'coupon'} <span className="font-bold text-foreground">{couponGroup.name}</span>?
+                        This will prevent any future usage of {couponGroup.is_bulk ? 'these codes' : 'this code'}. This action cannot be undone.
                     </p>
 
                     <div className="flex gap-2">

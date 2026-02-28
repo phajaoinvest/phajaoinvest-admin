@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Eye, Edit2, Trash2, MoreVertical, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
-import type { Coupon } from '@/lib/types'
+import type { CouponGroup } from '@/lib/types'
 import { CouponDiscountType } from '@/lib/types'
 
 const getStatusBadgeClass = (active: boolean) => {
@@ -18,13 +18,13 @@ const getStatusBadgeClass = (active: boolean) => {
 }
 
 interface CouponListProps {
-    coupons: Coupon[]
+    coupons: CouponGroup[]
     isLoading: boolean
     openDropdownId: string | null
     toggleDropdown: (id: string) => void
-    onViewDetails: (coupon: Coupon) => void
-    onEdit: (coupon: Coupon) => void
-    onDelete: (coupon: Coupon) => void
+    onViewDetails: (couponGroup: CouponGroup) => void
+    onEdit: (couponGroup: CouponGroup) => void
+    onDelete: (couponGroup: CouponGroup) => void
     page: number
     limit: number
     totalPages: number
@@ -83,80 +83,84 @@ export function CouponList({
                         </tr>
                     </thead>
                     <tbody>
-                        {coupons.map((coupon, index) => (
-                            <tr key={coupon.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                                <td className="p-4 text-sm font-light text-muted-foreground">
-                                    {((page - 1) * limit) + index + 1}
-                                </td>
-                                <td className="p-4">
-                                    <div className="font-bold text-sm bg-secondary/50 inline-block px-2 py-1 rounded">
-                                        {coupon.code}
-                                    </div>
-                                </td>
-                                <td className="p-4 text-sm font-light">
-                                    {coupon.discount_type === CouponDiscountType.PERCENTAGE
-                                        ? `${coupon.discount_value}%`
-                                        : `$${coupon.discount_value}`}
-                                </td>
-                                <td className="p-4 text-sm font-light text-muted-foreground">
-                                    {coupon.subscription_package?.description ? (
-                                        <span className="truncate max-w-[150px] inline-block" title={coupon.subscription_package.description}>
-                                            {coupon.subscription_package.description} ({coupon.subscription_package.duration_months}mo)
-                                        </span>
-                                    ) : coupon.subscription_package_id ? (
-                                        'Linked Package'
-                                    ) : (
-                                        '-'
-                                    )}
-                                </td>
-                                <td className="p-4 text-sm font-light text-muted-foreground">
-                                    {coupon.usage_count} / {coupon.usage_limit || '∞'}
-                                </td>
-                                <td className="p-4">
-                                    <div className="text-xs text-muted-foreground space-y-1">
-                                        <div><span className="font-medium">From:</span> {coupon.valid_from ? format(new Date(coupon.valid_from), 'MMM d, yy') : 'Anytime'}</div>
-                                        <div><span className="font-medium">To:</span> {coupon.valid_until ? format(new Date(coupon.valid_until), 'MMM d, yy') : 'Never'}</div>
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${getStatusBadgeClass(coupon.active)}`}>
-                                        {coupon.active ? 'Active' : 'Inactive'}
-                                    </div>
-                                </td>
-                                <td className="p-4">
-                                    <div className="flex justify-end">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0"
-                                                >
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end" className="w-32">
-                                                <DropdownMenuItem onClick={() => onViewDetails(coupon)}>
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    View Details
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => onEdit(coupon)}>
-                                                    <Edit2 className="w-4 h-4 mr-2" />
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                                    onClick={() => onDelete(coupon)}
-                                                >
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {coupons.map((group, index) => {
+                            if (!group) return null;
+                            const sampleCoupon = group.coupons?.[0]
+                            return (
+                                <tr key={group.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                                    <td className="p-4 text-sm font-light text-muted-foreground">
+                                        {((page - 1) * limit) + index + 1}
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="font-bold text-sm bg-secondary/50 inline-block px-2 py-1 rounded">
+                                            {group.name} {group.is_bulk && `(${group.total_coupons} items)`}
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-sm font-light">
+                                        {sampleCoupon?.discount_type === CouponDiscountType.PERCENTAGE
+                                            ? `${sampleCoupon.discount_value}%`
+                                            : sampleCoupon?.discount_value ? `$${sampleCoupon.discount_value}` : '-'}
+                                    </td>
+                                    <td className="p-4 text-sm font-light text-muted-foreground">
+                                        {sampleCoupon?.subscription_package?.description ? (
+                                            <span className="truncate max-w-[150px] inline-block" title={sampleCoupon.subscription_package.description}>
+                                                {sampleCoupon.subscription_package.description} ({sampleCoupon.subscription_package.duration_months}mo)
+                                            </span>
+                                        ) : sampleCoupon?.subscription_package_id ? (
+                                            'Linked Package'
+                                        ) : (
+                                            '-'
+                                        )}
+                                    </td>
+                                    <td className="p-4 text-sm font-light text-muted-foreground">
+                                        {group.is_bulk ? `Total Generated: ${group.total_coupons}` : `${sampleCoupon?.usage_count || 0} / ${sampleCoupon?.usage_limit || '∞'}`}
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="text-xs text-muted-foreground space-y-1">
+                                            <div><span className="font-medium">From:</span> {sampleCoupon?.valid_from ? format(new Date(sampleCoupon.valid_from), 'MMM d, yy') : 'Anytime'}</div>
+                                            <div><span className="font-medium">To:</span> {sampleCoupon?.valid_until ? format(new Date(sampleCoupon.valid_until), 'MMM d, yy') : 'Never'}</div>
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium ${getStatusBadgeClass(!!sampleCoupon?.active)}`}>
+                                            {sampleCoupon?.active ? 'Active' : 'Inactive'}
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex justify-end">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0"
+                                                    >
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-32">
+                                                    <DropdownMenuItem onClick={() => onViewDetails(group)}>
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        View Details
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => onEdit(group)}>
+                                                        <Edit2 className="w-4 h-4 mr-2" />
+                                                        Edit Batch
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                                                        onClick={() => onDelete(group)}
+                                                    >
+                                                        <Trash2 className="w-4 h-4 mr-2" />
+                                                        Delete Batch
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </table>
             </div>

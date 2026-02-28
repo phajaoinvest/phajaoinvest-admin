@@ -6,6 +6,7 @@ import { create } from 'zustand'
 import { couponsApi } from '@/lib/api'
 import type {
     Coupon,
+    CouponGroup,
     CreateCouponRequest,
     UpdateCouponRequest,
     PaginationParams,
@@ -13,15 +14,16 @@ import type {
 } from '@/lib/types'
 
 interface CouponsState {
-    coupons: Coupon[]
+    coupons: CouponGroup[]
     pagination: PaginationMeta
     isLoading: boolean
     isProcessing: boolean
     error: string | null
 
     fetchCoupons: (params?: PaginationParams) => Promise<void>
-    createCoupon: (data: CreateCouponRequest) => Promise<Coupon>
-    updateCoupon: (id: string, data: UpdateCouponRequest) => Promise<Coupon>
+    getCouponGroup: (id: string) => Promise<CouponGroup>
+    createCoupon: (data: CreateCouponRequest) => Promise<CouponGroup>
+    updateCoupon: (id: string, data: UpdateCouponRequest) => Promise<CouponGroup>
     deleteCoupon: (id: string) => Promise<void>
     clearError: () => void
 }
@@ -56,6 +58,18 @@ export const useCouponsStore = create<CouponsState>((set) => ({
             })
         } catch (error) {
             set({ error: (error as any)?.message || 'Failed to fetch coupons', isLoading: false })
+        }
+    },
+
+    getCouponGroup: async (id) => {
+        set({ isProcessing: true, error: null })
+        try {
+            const response = await couponsApi.getById(id)
+            set({ isProcessing: false })
+            return response.data
+        } catch (error) {
+            set({ error: (error as any)?.message || 'Failed to fetch coupon details', isProcessing: false })
+            throw error
         }
     },
 

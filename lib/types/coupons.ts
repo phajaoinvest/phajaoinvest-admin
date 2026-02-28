@@ -9,6 +9,16 @@ export enum CouponDiscountType {
     FIXED = 'fixed',
 }
 
+export interface CouponGroup {
+    id: string;
+    name: string;
+    is_bulk: boolean;
+    total_coupons: number;
+    coupons?: Coupon[];
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Coupon {
     id: string;
     code: string;
@@ -23,13 +33,17 @@ export interface Coupon {
     usage_count: number;
     subscription_package_id: string | null;
     subscription_package?: any; // Add proper type if needed or keep as any for now
+    group_id?: string | null;
+    group?: CouponGroup;
     active: boolean;
     created_at: string;
     updated_at: string;
 }
 
 export interface CreateCouponRequest {
-    code: string;
+    code?: string;
+    generate_count?: number;
+    code_prefix?: string;
     description?: string;
     discount_type: CouponDiscountType;
     discount_value: number;

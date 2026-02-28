@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { useCouponsStore, usePaymentsStore } from '@/lib/stores'
 import { useDebounce, usePagination } from '@/hooks'
 import { CouponDiscountType } from '@/lib/types'
-import type { Coupon, CreateCouponRequest, UpdateCouponRequest, PaginationParams } from '@/lib/types'
+import type { Coupon, CouponGroup, CreateCouponRequest, UpdateCouponRequest, PaginationParams } from '@/lib/types'
 import { Plus, X, Search, RefreshCw } from 'lucide-react'
 
 // Components
@@ -29,6 +29,7 @@ export default function CouponsPage() {
         updateCoupon,
         deleteCoupon,
         clearError,
+        getCouponGroup,
     } = useCouponsStore()
 
     const { packages, fetchPackages } = usePaymentsStore()
@@ -40,13 +41,16 @@ export default function CouponsPage() {
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingId, setEditingId] = useState<string | null>(null)
-    const [viewingCoupon, setViewingCoupon] = useState<Coupon | null>(null)
-    const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null)
+    const [viewingCoupon, setViewingCoupon] = useState<CouponGroup | null>(null)
+    const [deletingCoupon, setDeletingCoupon] = useState<CouponGroup | null>(null)
     const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
 
     // Form state
     const [formData, setFormData] = useState({
         code: '',
+        is_bulk: false,
+        generate_count: '10',
+        code_prefix: '',
         description: '',
         discount_type: CouponDiscountType.PERCENTAGE,
         discount_value: '',
@@ -112,7 +116,9 @@ export default function CouponsPage() {
     const handleCreate = async () => {
         try {
             const data: CreateCouponRequest = {
-                code: formData.code,
+                code: formData.is_bulk ? undefined : formData.code,
+                generate_count: formData.is_bulk ? parseInt(formData.generate_count) : undefined,
+                code_prefix: formData.is_bulk ? formData.code_prefix : undefined,
                 description: formData.description || undefined,
                 discount_type: formData.discount_type,
                 discount_value: parseFloat(formData.discount_value),
@@ -158,6 +164,9 @@ export default function CouponsPage() {
     const openCreateModal = () => {
         setFormData({
             code: '',
+            is_bulk: false,
+            generate_count: '10',
+            code_prefix: '',
             description: '',
             discount_type: CouponDiscountType.PERCENTAGE,
             discount_value: '',
@@ -173,20 +182,24 @@ export default function CouponsPage() {
         setIsModalOpen(true)
     }
 
-    const openEditModal = (coupon: Coupon) => {
-        setEditingId(coupon.id)
+    const openEditModal = (group: CouponGroup) => {
+        setEditingId(group.id)
+        const sampleCoupon = group.coupons?.[0] || {} as any
         setFormData({
-            code: coupon.code,
-            description: coupon.description || '',
-            discount_type: coupon.discount_type,
-            discount_value: String(coupon.discount_value),
-            max_discount_amount: coupon.max_discount_amount ? String(coupon.max_discount_amount) : '',
-            min_purchase_amount: coupon.min_purchase_amount ? String(coupon.min_purchase_amount) : '',
-            valid_from: coupon.valid_from ? coupon.valid_from.split('T')[0] : '',
-            valid_until: coupon.valid_until ? coupon.valid_until.split('T')[0] : '',
-            usage_limit: coupon.usage_limit ? String(coupon.usage_limit) : '',
-            subscription_package_id: coupon.subscription_package_id || '',
-            active: coupon.active,
+            code: sampleCoupon.code || '',
+            is_bulk: group.is_bulk,
+            generate_count: String(group.total_coupons),
+            code_prefix: '',
+            description: sampleCoupon.description || '',
+            discount_type: sampleCoupon.discount_type || CouponDiscountType.PERCENTAGE,
+            discount_value: String(sampleCoupon.discount_value || ''),
+            max_discount_amount: sampleCoupon.max_discount_amount ? String(sampleCoupon.max_discount_amount) : '',
+            min_purchase_amount: sampleCoupon.min_purchase_amount ? String(sampleCoupon.min_purchase_amount) : '',
+            valid_from: sampleCoupon.valid_from ? sampleCoupon.valid_from.split('T')[0] : '',
+            valid_until: sampleCoupon.valid_until ? sampleCoupon.valid_until.split('T')[0] : '',
+            usage_limit: sampleCoupon.usage_limit ? String(sampleCoupon.usage_limit) : '',
+            subscription_package_id: sampleCoupon.subscription_package_id || '',
+            active: sampleCoupon.active !== undefined ? sampleCoupon.active : true,
         })
         setIsModalOpen(true)
         setOpenDropdownId(null)
@@ -195,6 +208,15 @@ export default function CouponsPage() {
     const closeModal = () => {
         setIsModalOpen(false)
         setEditingId(null)
+    }
+
+    const handleViewDetails = async (group: CouponGroup) => {
+        try {
+            const fullGroup = await getCouponGroup(group.id)
+            setViewingCoupon(fullGroup)
+        } catch (err) {
+            console.error('Failed to load group details', err)
+        }
     }
 
     const handleDeleteConfirm = async () => {
@@ -277,7 +299,7 @@ export default function CouponsPage() {
                     isLoading={isLoading}
                     openDropdownId={openDropdownId}
                     toggleDropdown={toggleDropdown}
-                    onViewDetails={setViewingCoupon}
+                    onViewDetails={handleViewDetails}
                     onEdit={openEditModal}
                     onDelete={setDeletingCoupon}
                     page={page}
@@ -300,12 +322,12 @@ export default function CouponsPage() {
             />
 
             <CouponDetailsModal
-                coupon={viewingCoupon}
+                couponGroup={viewingCoupon}
                 onClose={() => setViewingCoupon(null)}
             />
 
             <CouponDeleteModal
-                coupon={deletingCoupon}
+                couponGroup={deletingCoupon}
                 isProcessing={isProcessing}
                 onConfirm={handleDeleteConfirm}
                 onClose={() => setDeletingCoupon(null)}
