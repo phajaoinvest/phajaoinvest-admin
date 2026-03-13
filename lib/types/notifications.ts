@@ -20,6 +20,8 @@ export enum NotificationCategory {
   TOP_UP = 'top_up',
   INVESTMENT_REQUEST = 'investment_request',
   INVESTMENT_RETURN = 'investment_return',
+  KYC = 'kyc',
+  SYSTEM = 'system',
 }
 
 export enum NotificationAction {
@@ -27,6 +29,7 @@ export enum NotificationAction {
   APPROVED = 'approved',
   REJECTED = 'rejected',
   SUBMITTED = 'submitted',
+  CREATED = 'created',
 }
 
 // ============================================================================

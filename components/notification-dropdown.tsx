@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
-import { Bell, Check, Info, AlertTriangle, X, CheckCheck } from 'lucide-react'
+import { Bell, Check, Info, AlertTriangle, X, CheckCheck, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -67,6 +67,8 @@ export function NotificationDropdown() {
         return <X className="w-4 h-4 text-red-500" />
       case 'applied':
         return <AlertTriangle className="w-4 h-4 text-yellow-500" />
+      case 'created':
+        return <Plus className="w-4 h-4 text-green-500" />
       default:
         return <Info className="w-4 h-4 text-blue-500" />
     }
@@ -100,6 +102,21 @@ export function NotificationDropdown() {
       case NotificationCategory.INVESTMENT_RETURN:
         // Investment requests
         return `/dashboard/payments/investments/${entityId}`
+
+      case NotificationCategory.KYC:
+        return `/dashboard/customers/${entityId}`
+
+      case NotificationCategory.SYSTEM:
+        if (metadata?.entityType === 'customer') {
+          return `/dashboard/customers/${entityId}`
+        }
+        if (metadata?.entityType === 'payment') {
+          return `/dashboard/payments/subscriptions/${entityId}`
+        }
+        if (metadata?.entityType === 'investment_transaction') {
+          return `/dashboard/payments/investments/${entityId}`
+        }
+        return null
 
       default:
         return null
