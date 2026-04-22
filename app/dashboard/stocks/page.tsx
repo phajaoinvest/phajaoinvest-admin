@@ -65,6 +65,8 @@ import {
   Globe,
   BarChart3,
   DollarSign,
+  EyeOff,
+  Shield,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { usePagination } from '@/hooks'
@@ -93,7 +95,7 @@ export default function StocksPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // Form data
-  const [formData, setFormData] = useState<CreateStockRequest>({
+  const [formData, setFormData] = useState<CreateStockRequest & { max_investment?: number; show_symbol?: boolean; is_demo?: boolean; last_price?: number }>({
     symbol: '',
     name: '',
     description: '',
@@ -103,6 +105,10 @@ export default function StocksPage() {
     country: '',
     currency: 'USD',
     category_id: '',
+    max_investment: 10000,
+    show_symbol: true,
+    is_demo: false,
+    last_price: 0,
   })
 
   // Fetch stocks
@@ -168,6 +174,10 @@ export default function StocksPage() {
       country: '',
       currency: 'USD',
       category_id: '',
+      max_investment: 10000,
+      show_symbol: true,
+      is_demo: false,
+      last_price: 0,
     })
     setIsEditing(false)
     setShowModal(true)
@@ -185,6 +195,10 @@ export default function StocksPage() {
       country: stock.country || '',
       currency: stock.currency || 'USD',
       category_id: stock.category_id || '',
+      max_investment: stock.max_investment ?? 10000,
+      show_symbol: stock.show_symbol ?? true,
+      is_demo: stock.is_demo ?? false,
+      last_price: stock.last_price || 0,
     })
     setSelectedStock(stock)
     setIsEditing(true)
@@ -222,10 +236,14 @@ export default function StocksPage() {
       if (isEditing && selectedStock) {
         const updateData: UpdateStockRequest = {
           name: formData.name,
+          last_price: formData.last_price,
           description: formData.description,
           sector: formData.sector,
           industry: formData.industry,
           category_id: formData.category_id,
+          max_investment: formData.max_investment,
+          show_symbol: formData.show_symbol,
+          is_demo: formData.is_demo,
         }
         await stocksApi.update(selectedStock.id, updateData)
         toast({
@@ -233,7 +251,7 @@ export default function StocksPage() {
           description: 'Stock updated successfully',
         })
       } else {
-        await stocksApi.create(formData)
+        await stocksApi.create({ ...formData, last_price: formData.last_price ?? 0 })
         toast({
           title: 'Success',
           description: 'Stock created successfully',
@@ -435,7 +453,9 @@ export default function StocksPage() {
                     <TableHead>Exchange</TableHead>
                     <TableHead>Sector</TableHead>
                     <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Market Cap</TableHead>
+                    <TableHead className="text-right">Max Investment</TableHead>
+                    <TableHead className="text-center">Show Symbol</TableHead>
+                    <TableHead className="text-center">Demo</TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
@@ -455,7 +475,53 @@ export default function StocksPage() {
                         {(stock.last_price || stock.current_price) ? formatCurrency(stock.last_price || stock.current_price) : '-'}
                       </TableCell>
                       <TableCell className="text-right">
-                        {stock.market_cap ? formatCompactCurrency(stock.market_cap) : '-'}
+                        <Badge variant="outline" className="font-mono">
+                          {stock.max_investment ? `$${Number(stock.max_investment).toLocaleString()}` : 'No limit'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={stock.show_symbol ?? true}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await stocksApi.update(stock.id, { show_symbol: checked } as UpdateStockRequest)
+                              fetchStocks()
+                              toast({
+                                title: 'Updated',
+                                description: `Symbol visibility ${checked ? 'enabled' : 'hidden'} for ${stock.symbol}`,
+                              })
+                            } catch (err: any) {
+                              console.error('Show symbol toggle error:', err)
+                              toast({
+                                title: 'Error',
+                                description: err?.message || 'Failed to update show_symbol',
+                                variant: 'destructive',
+                              })
+                            }
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={stock.is_demo ?? false}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await stocksApi.update(stock.id, { is_demo: checked } as UpdateStockRequest)
+                              fetchStocks()
+                              toast({
+                                title: 'Updated',
+                                description: `Demo mode ${checked ? 'enabled' : 'disabled'} for ${stock.symbol}`,
+                              })
+                            } catch (err: any) {
+                              console.error('Demo toggle error:', err)
+                              toast({
+                                title: 'Error',
+                                description: err?.message || 'Failed to update is_demo',
+                                variant: 'destructive',
+                              })
+                            }
+                          }}
+                        />
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge
@@ -539,8 +605,8 @@ export default function StocksPage() {
               {isEditing ? 'Update stock information' : 'Create a new stock entry'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 py-4 max-h-[75vh] overflow-y-auto px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="symbol">Symbol *</Label>
                 <Input
@@ -561,7 +627,7 @@ export default function StocksPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="exchange">Exchange</Label>
                 <Input
@@ -581,7 +647,38 @@ export default function StocksPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="last_price">Latest Price *</Label>
+                <Input
+                  id="last_price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.last_price || ''}
+                  onChange={(e) => setFormData({ ...formData, last_price: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g., 150.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select
+                  value={formData.currency}
+                  onValueChange={(value) => setFormData({ ...formData, currency: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="THB">THB</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sector">Sector</Label>
                 <Input
@@ -601,24 +698,7 @@ export default function StocksPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Select
-                  value={formData.currency}
-                  onValueChange={(value) => setFormData({ ...formData, currency: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="THB">THB</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select
@@ -647,6 +727,46 @@ export default function StocksPage() {
                 placeholder="Brief description of the stock..."
                 rows={3}
               />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="max_investment">Max Investment ($)</Label>
+                <Input
+                  id="max_investment"
+                  type="number"
+                  min={0}
+                  value={formData.max_investment || ''}
+                  onChange={(e) => setFormData({ ...formData, max_investment: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g., 10000"
+                />
+                <p className="text-xs text-muted-foreground">Maximum investment per paper trade</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Show Symbol to Customers</Label>
+                <div className="flex items-center gap-3 pt-2">
+                  <Switch
+                    checked={formData.show_symbol ?? true}
+                    onCheckedChange={(checked) => setFormData({ ...formData, show_symbol: checked })}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {formData.show_symbol ? 'Visible' : 'Hidden'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">Toggle to hide/show the ticker symbol</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Demo Mode (Guess Buy)</Label>
+                <div className="flex items-center gap-3 pt-2">
+                  <Switch
+                    checked={formData.is_demo ?? false}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_demo: checked })}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {formData.is_demo ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">Enable to show this stock in Guess Buy list</p>
+              </div>
             </div>
           </div>
           <DialogFooter>

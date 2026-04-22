@@ -44,6 +44,11 @@ export interface Stock extends BaseEntity {
   is_tradable: boolean
   is_active: boolean
   
+  // Paper Trading Controls
+  max_investment: number | null
+  show_symbol: boolean
+  is_demo: boolean
+  
   // Market Hours & Status
   market_status: string | null
   market_open_time: string | null
@@ -174,6 +179,7 @@ export interface StockTransaction extends BaseEntity {
 export interface CreateStockRequest {
   symbol: string
   name: string
+  last_price?: number
   description?: string
   sector?: string
   industry?: string
@@ -185,11 +191,15 @@ export interface CreateStockRequest {
 
 export interface UpdateStockRequest {
   name?: string
+  last_price?: number
   description?: string
   sector?: string
   industry?: string
   is_active?: boolean
   category_id?: string
+  max_investment?: number
+  show_symbol?: boolean
+  is_demo?: boolean
 }
 
 export interface CreateStockPickRequest {

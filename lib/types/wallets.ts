@@ -13,6 +13,7 @@ export interface Wallet extends BaseEntity {
   balance: number
   currency: string
   is_active: boolean
+  demo_balance: number // Separate demo trading balance (default $100,000)
   customer?: {
     id: string
     first_name: string
