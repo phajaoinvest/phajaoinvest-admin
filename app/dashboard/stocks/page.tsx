@@ -95,7 +95,7 @@ export default function StocksPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // Form data
-  const [formData, setFormData] = useState<CreateStockRequest & { max_investment?: number; show_symbol?: boolean; is_demo?: boolean; last_price?: number }>({
+  const [formData, setFormData] = useState<CreateStockRequest & { max_investment?: number; show_symbol?: boolean; is_demo?: boolean; last_price?: number; support1?: number; support2?: number; resistance1?: number; resistance2?: number }>({
     symbol: '',
     name: '',
     description: '',
@@ -109,6 +109,10 @@ export default function StocksPage() {
     show_symbol: true,
     is_demo: false,
     last_price: 0,
+    support1: 0,
+    support2: 0,
+    resistance1: 0,
+    resistance2: 0,
   })
 
   // Fetch stocks
@@ -178,6 +182,10 @@ export default function StocksPage() {
       show_symbol: true,
       is_demo: false,
       last_price: 0,
+      support1: 0,
+      support2: 0,
+      resistance1: 0,
+      resistance2: 0,
     })
     setIsEditing(false)
     setShowModal(true)
@@ -199,6 +207,10 @@ export default function StocksPage() {
       show_symbol: stock.show_symbol ?? true,
       is_demo: stock.is_demo ?? false,
       last_price: stock.last_price || 0,
+      support1: stock.support1 || 0,
+      support2: stock.support2 || 0,
+      resistance1: stock.resistance1 || 0,
+      resistance2: stock.resistance2 || 0,
     })
     setSelectedStock(stock)
     setIsEditing(true)
@@ -244,6 +256,10 @@ export default function StocksPage() {
           max_investment: formData.max_investment,
           show_symbol: formData.show_symbol,
           is_demo: formData.is_demo,
+          support1: formData.support1,
+          support2: formData.support2,
+          resistance1: formData.resistance1,
+          resistance2: formData.resistance2,
         }
         await stocksApi.update(selectedStock.id, updateData)
         toast({
@@ -453,6 +469,8 @@ export default function StocksPage() {
                     <TableHead>Exchange</TableHead>
                     <TableHead>Sector</TableHead>
                     <TableHead className="text-right">Price</TableHead>
+                    <TableHead className="text-center">Support 1/2</TableHead>
+                    <TableHead className="text-center">Resistance 1/2</TableHead>
                     <TableHead className="text-right">Max Investment</TableHead>
                     <TableHead className="text-center">Show Symbol</TableHead>
                     <TableHead className="text-center">Demo</TableHead>
@@ -473,6 +491,18 @@ export default function StocksPage() {
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {(stock.last_price || stock.current_price) ? formatCurrency(stock.last_price || stock.current_price) : '-'}
+                      </TableCell>
+                      <TableCell className="text-center text-sm font-mono whitespace-nowrap">
+                        <div className="flex flex-col text-green-600">
+                          <span>{stock.support1 ? formatCurrency(stock.support1) : '-'}</span>
+                          <span>{stock.support2 ? formatCurrency(stock.support2) : '-'}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center text-sm font-mono whitespace-nowrap">
+                        <div className="flex flex-col text-red-600">
+                          <span>{stock.resistance1 ? formatCurrency(stock.resistance1) : '-'}</span>
+                          <span>{stock.resistance2 ? formatCurrency(stock.resistance2) : '-'}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline" className="font-mono">
@@ -768,6 +798,54 @@ export default function StocksPage() {
                 <p className="text-xs text-muted-foreground">Enable to show this stock in Guess Buy list</p>
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="support1">Support 1</Label>
+                <Input
+                  id="support1"
+                  type="number"
+                  step="0.01"
+                  value={formData.support1 || ''}
+                  onChange={(e) => setFormData({ ...formData, support1: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g., 145.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="support2">Support 2</Label>
+                <Input
+                  id="support2"
+                  type="number"
+                  step="0.01"
+                  value={formData.support2 || ''}
+                  onChange={(e) => setFormData({ ...formData, support2: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g., 140.00"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="resistance1">Resistance 1</Label>
+                <Input
+                  id="resistance1"
+                  type="number"
+                  step="0.01"
+                  value={formData.resistance1 || ''}
+                  onChange={(e) => setFormData({ ...formData, resistance1: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g., 155.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="resistance2">Resistance 2</Label>
+                <Input
+                  id="resistance2"
+                  type="number"
+                  step="0.01"
+                  value={formData.resistance2 || ''}
+                  onChange={(e) => setFormData({ ...formData, resistance2: parseFloat(e.target.value) || 0 })}
+                  placeholder="e.g., 160.00"
+                />
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowModal(false)}>
@@ -853,6 +931,18 @@ export default function StocksPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Currency</p>
                   <p className="font-medium">{selectedStock.currency}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Support 1 / 2</p>
+                  <p className="font-medium">
+                    {selectedStock.support1 ? formatCurrency(selectedStock.support1) : 'N/A'} / {selectedStock.support2 ? formatCurrency(selectedStock.support2) : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Resistance 1 / 2</p>
+                  <p className="font-medium">
+                    {selectedStock.resistance1 ? formatCurrency(selectedStock.resistance1) : 'N/A'} / {selectedStock.resistance2 ? formatCurrency(selectedStock.resistance2) : 'N/A'}
+                  </p>
                 </div>
               </div>
               {selectedStock.description && (

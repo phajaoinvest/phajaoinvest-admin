@@ -64,6 +64,12 @@ export interface Stock extends BaseEntity {
   eps: number | null
   week_52_high: number | null
   week_52_low: number | null
+
+  // Analysis Data
+  support1: number | null
+  support2: number | null
+  resistance1: number | null
+  resistance2: number | null
   
   // Data Source
   data_source: string | null
@@ -187,6 +193,10 @@ export interface CreateStockRequest {
   country?: string
   currency?: string
   category_id?: string
+  support1?: number
+  support2?: number
+  resistance1?: number
+  resistance2?: number
 }
 
 export interface UpdateStockRequest {
@@ -200,6 +210,10 @@ export interface UpdateStockRequest {
   max_investment?: number
   show_symbol?: boolean
   is_demo?: boolean
+  support1?: number
+  support2?: number
+  resistance1?: number
+  resistance2?: number
 }
 
 export interface CreateStockPickRequest {
