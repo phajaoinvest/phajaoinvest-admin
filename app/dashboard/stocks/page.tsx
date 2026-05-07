@@ -162,6 +162,15 @@ export default function StocksPage() {
   }, [])
 
   useEffect(() => {
+    if (!isEditing && showModal && !formData.category_id && categories.length > 0) {
+      const defaultCategory = categories.find(c => c.name === 'Uncategorized') || categories[0];
+      if (defaultCategory) {
+        setFormData(prev => ({ ...prev, category_id: defaultCategory.id }));
+      }
+    }
+  }, [categories, showModal, isEditing, formData.category_id]);
+
+  useEffect(() => {
     fetchStocks()
     fetchCategories()
   }, [fetchStocks, fetchCategories])
@@ -177,7 +186,7 @@ export default function StocksPage() {
       exchange: '',
       country: '',
       currency: 'USD',
-      category_id: '',
+      category_id: categories.find(c => c.name === 'Uncategorized')?.id || categories[0]?.id || '',
       max_investment: 10000,
       show_symbol: true,
       is_demo: false,
@@ -202,7 +211,7 @@ export default function StocksPage() {
       exchange: stock.exchange || '',
       country: stock.country || '',
       currency: stock.currency || 'USD',
-      category_id: stock.category_id || '',
+      category_id: stock.category_id || stock.stockCategory?.id || stock.category?.id || '',
       max_investment: stock.max_investment ?? 10000,
       show_symbol: stock.show_symbol ?? true,
       is_demo: stock.is_demo ?? false,
